@@ -6,7 +6,7 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
   return (
     <div
       style={{
-        height: "60px",
+        height: "65px",
         backgroundColor: "#ffffff",
         display: "flex",
         alignItems: "center",
@@ -17,7 +17,7 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
         position: "relative",
       }}
     >
-      {/* Links: Logo + Titel */}
+      {/* Left: Logo  | + Menu Items */}
       <div
         style={{
           display: "flex",
@@ -25,80 +25,92 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
           gap: "12px",
         }}
       >
-        <div
-          style={{
-            width: "40px",
-            height: "40px",
-            backgroundColor: "#3b82f6",
-            borderRadius: "8px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "20px",
-            fontWeight: "bold",
-            color: "white",
-          }}
-        >
-          S
+        <div>
+          <img
+            src="./IMG/Swiss_ICON.webp"
+            alt="SODC Logo"
+            width="45"
+            height="45"
+            style={{ borderRadius: "8px" }}
+          />
         </div>
+
         <span
           style={{
             color: "black",
             fontSize: "20px",
             fontWeight: "600",
             letterSpacing: "0.5px",
+            fontFamily: "Exo 2, Rajdhani",
           }}
         >
           SODC Next Gen
         </span>
+
+        <span
+          style={{
+            color: "black",
+            fontSize: "20px",
+            fontWeight: "600",
+          }}
+        >
+          |
+        </span>
+        <div
+          style={{
+            display: "flex",
+            gap: "30px",
+            alignItems: "center",
+          }}
+        >
+          {menuItems.map((item) => (
+            <button
+              key={item}
+              onClick={() => onMenuClick(item)}
+              style={{
+                background: "none",
+                border: "1px solid #e2e8f0",
+                color: activeMenu === item ? "black" : "black",
+                fontSize: "17px",
+                fontFamily: "BernhardModern",
+                fontWeight: "50",
+                cursor: "pointer",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                transition: "all 0.2s ease",
+                textDecoration: activeMenu === item ? "none" : "none",
+                textUnderlineOffset: "4px",
+              }}
+              onMouseEnter={(e) => {
+                if (activeMenu !== item) {
+                  e.target.style.color = "#ffffff";
+                }
+                e.target.style.backgroundColor = "#aeb0b3";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.color = "black";
+                e.target.style.backgroundColor = "transparent";
+              }}
+              onMouseDown={(e) => {
+                e.target.style.backgroundColor = "#000000";
+              }}
+              onMouseUp={(e) => {
+                e.target.style.backgroundColor = "transparent";
+              }}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Mitte: Menüpunkte */}
-      <div
-        style={{
-          display: "flex",
-          gap: "30px",
-          alignItems: "center",
-        }}
-      >
-        {menuItems.map((item) => (
-          <button
-            key={item}
-            onClick={() => onMenuClick(item)}
-            style={{
-              background: "none",
-              border: "none",
-              color: activeMenu === item ? "#black" : "black",
-              fontSize: "16px",
-              fontWeight: activeMenu === item ? "600" : "400",
-              cursor: "pointer",
-              padding: "8px 12px",
-              borderRadius: "6px",
-              transition: "all 0.2s ease",
-              textDecoration: activeMenu === item ? "underline" : "none",
-              textUnderlineOffset: "4px",
-            }}
-            onMouseEnter={(e) => {
-              if (activeMenu !== item) {
-                e.target.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "transparent";
-            }}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
-
-      {/* Rechts: Settings Icon */}
+      {/* Right: Settings */}
       <button
         onClick={() => onMenuClick("Settings")}
         style={{
           background: "none",
-          border: "none",
-          color: activeMenu === "Settings" ? "#60a5fa" : "white",
+          border: "1px solid #e2e8f0",
+          color: activeMenu === "Settings" ? "#60a5fa" : "black",
           cursor: "pointer",
           padding: "8px",
           borderRadius: "6px",
@@ -109,12 +121,23 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
           fontSize: "20px",
         }}
         onMouseEnter={(e) => {
-          e.target.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-        }}
-        onMouseLeave={(e) => {
+          if (activeMenu !== "Settings") {
+            e.target.style.color = "#60a5fa";
+          }
           e.target.style.backgroundColor = "transparent";
         }}
-        title="Einstellungen"
+        onMouseLeave={(e) => {
+          e.target.style.color =
+            activeMenu === "Settings" ? "#60a5fa" : "black";
+          e.target.style.backgroundColor = "transparent";
+        }}
+        onMouseDown={(e) => {
+          e.target.style.backgroundColor = "#e2e8f0";
+        }}
+        onMouseUp={(e) => {
+          e.target.style.backgroundColor = "transparent";
+        }}
+        title="Settings"
       >
         ⚙️
       </button>

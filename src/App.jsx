@@ -9,11 +9,11 @@ function App() {
 
   const handleMenuClick = (menuItem) => {
     if (activeMenu === menuItem && isSidebarOpen) {
-      //wenn scho offe isch, schlüsse
+      // if already open, close
       setIsSidebarOpen(false);
       setActiveMenu(null);
     } else {
-      //neus menu öffne
+      // open new menu
       setActiveMenu(menuItem);
       setIsSidebarOpen(true);
     }
@@ -33,12 +33,13 @@ function App() {
         flexDirection: "column",
         overflow: "hidden",
         backgroundColor: "#f8fafc",
+        border: "none",
       }}
     >
-      {/* Menüleiste */}
+      {/* Menu Bar */}
       <MenuBar onMenuClick={handleMenuClick} activeMenu={activeMenu} />
 
-      {/* Hauptinhalt mit Map */}
+      {/* Main content with Map */}
       <div
         style={{ flex: 1, minHeight: 0, display: "flex", position: "relative" }}
       >
