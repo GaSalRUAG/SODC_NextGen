@@ -1,19 +1,54 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import MapView from "./components/MapView";
 import MenuBar from "./components/MenuBar";
-import Sidebar from "./components/Sidebar";
+import Sidebar from "./components/SidePanel";
+
+// Diagramm-Klassen
+import ImportController from "./controllers/importController";
+import ImportService from "./services/importService";
+import ObstacleStore from "./stores/obstacleStore";
 
 function App() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Store-State für UI
+  const [obstacles, setObstacles] = useState([]);
+
+  // Refs für Komponenten (Controller braucht Zugriff)
+  const mapViewRef = useRef(null);
+  const sidebarRef = useRef(null);
+  const importControllerRef = useRef(null);
+
+  // Services/Store einmalig erstellen
+  const importService = useMemo(() => new ImportService(), []);
+  const obstacleStore = useMemo(() => new ObstacleStore(), []);
+
+  // Store → React State synchronisieren
+  useEffect(() => {
+    return obstacleStore.subscribe(() => {
+      setObstacles(obstacleStore.getObstacles());
+    });
+  }, [obstacleStore]);
+
+  // Controller initialisieren, sobald MapView & Sidebar bereit sind
+  useEffect(() => {
+    if (!mapViewRef.current) return;
+    if (!sidebarRef.current) return;
+
+    importControllerRef.current = new ImportController({
+      importService,
+      obstacleStore,
+      mapView: mapViewRef.current,
+      sidePanel: sidebarRef.current,
+    });
+  }, [importService, obstacleStore]);
+
   const handleMenuClick = (menuItem) => {
     if (activeMenu === menuItem && isSidebarOpen) {
-      // if already open, close
       setIsSidebarOpen(false);
       setActiveMenu(null);
     } else {
-      // open new menu
       setActiveMenu(menuItem);
       setIsSidebarOpen(true);
     }
@@ -22,6 +57,18 @@ function App() {
   const handleCloseSidebar = () => {
     setIsSidebarOpen(false);
     setActiveMenu(null);
+  };
+
+  // Wird vom Sidebar (Obstacles Panel) verwendet
+  const handleImportKmzFile = async (file) => {
+    if (!importControllerRef.current) return;
+    await importControllerRef.current.importKmzFile(file);
+  };
+
+  // Wird vom Sidebar (Clear All Obstacles) verwendet
+  const handleResetObstacles = () => {
+    if (!importControllerRef.current) return;
+    importControllerRef.current.resetObstacles();
   };
 
   return (
@@ -36,21 +83,22 @@ function App() {
         border: "none",
       }}
     >
-      {/* Menu Bar */}
       <MenuBar onMenuClick={handleMenuClick} activeMenu={activeMenu} />
 
-      {/* Main content with Map */}
       <div
         style={{ flex: 1, minHeight: 0, display: "flex", position: "relative" }}
       >
-        {/* Sidebar */}
         <Sidebar
+          ref={sidebarRef}
           isOpen={isSidebarOpen}
           activeMenu={activeMenu}
           onClose={handleCloseSidebar}
+          // NEU: Obstacles Panel braucht diese Props
+          obstacles={obstacles}
+          onImportKmzFile={handleImportKmzFile}
+          onClearAllObstacles={handleResetObstacles}
         />
 
-        {/* Map View */}
         <div
           style={{
             flex: 1,
@@ -59,7 +107,7 @@ function App() {
             transition: "margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          <MapView />
+          <MapView ref={mapViewRef} />
         </div>
       </div>
     </div>
