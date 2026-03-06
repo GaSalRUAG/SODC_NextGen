@@ -1,7 +1,7 @@
 import React from "react";
 
 const MenuBar = ({ onMenuClick, activeMenu }) => {
-  const menuItems = ["Convert", "Filter", "SIRINA MAPPINGS"];
+  const menuItems = ["Obstacles", "Convert", "Filter", "SIRINA MAPPINGS"];
 
   return (
     <div
@@ -40,8 +40,7 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
             color: "black",
             fontSize: "20px",
             fontWeight: "600",
-            letterSpacing: "0.5px",
-            fontFamily: "Exo 2, Rajdhani",
+            fontFamily: "Gill Sans, sans-serif",
           }}
         >
           SODC Next Gen
@@ -56,6 +55,7 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
         >
           |
         </span>
+
         <div
           style={{
             display: "flex",
@@ -72,7 +72,6 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
                 border: "1px solid #e2e8f0",
                 color: activeMenu === item ? "black" : "black",
                 fontSize: "17px",
-                fontFamily: "BernhardModern",
                 fontWeight: "50",
                 cursor: "pointer",
                 padding: "8px 12px",
