@@ -90,6 +90,16 @@ const SidePanel = forwardRef(function SidePanel(
             e.target.style.color = "black";
           }}
         >
+          <img
+            src="./IMG/ImportIcon.png"
+            alt="Import"
+            style={{
+              width: "20px",
+              height: "20px",
+              marginRight: "8px",
+              verticalAlign: "middle",
+            }}
+          />
           {isImporting ? "Import läuft..." : "Import KMZ File"}
         </button>
 
@@ -107,6 +117,14 @@ const SidePanel = forwardRef(function SidePanel(
         {!errorMessage && !hasObstacles && infoMessage ? (
           <div style={{ marginTop: "14px" }}>{infoMessage}</div>
         ) : null}
+
+        <div
+          style={{
+            marginTop: "10px",
+            marginBottom: "10px",
+            borderBottom: "2px solid #e2e8f0",
+          }}
+        />
 
         {/* Liste */}
         <div
@@ -175,6 +193,16 @@ const SidePanel = forwardRef(function SidePanel(
             e.target.style.color = "white";
           }}
         >
+          <img
+            src="./IMG/RemoveIcon.png"
+            alt="Clear"
+            style={{
+              width: "20px",
+              height: "20px",
+              marginRight: "8px",
+              verticalAlign: "middle",
+            }}
+          />
           Clear All Obstacles
         </button>
       </div>

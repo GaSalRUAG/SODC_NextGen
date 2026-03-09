@@ -96,7 +96,7 @@ function App() {
           // NEU: Obstacles Panel braucht diese Props
           obstacles={obstacles}
           onImportKmzFile={handleImportKmzFile}
-          onClearAllObstacles={handleResetObstacles}
+          onClearAll={handleResetObstacles}
         />
 
         <div
