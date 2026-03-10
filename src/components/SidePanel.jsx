@@ -56,7 +56,6 @@ const SidePanel = forwardRef(function SidePanel(
 
     return (
       <div>
-        {/* hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -65,7 +64,6 @@ const SidePanel = forwardRef(function SidePanel(
           onChange={handleFileChange}
         />
 
-        {/* Import Button */}
         <button
           onClick={openFilePicker}
           disabled={isImporting}
@@ -81,13 +79,13 @@ const SidePanel = forwardRef(function SidePanel(
             borderRadius: "6px",
             transition: "all 0.2s ease",
           }}
-          onMouseEnter={(e) => {
+          onMouseEnter={(event) => {
             if (!isImporting) {
-              e.target.style.color = "#ffffff";
+              event.target.style.color = "#ffffff";
             }
           }}
-          onMouseLeave={(e) => {
-            e.target.style.color = "black";
+          onMouseLeave={(event) => {
+            event.target.style.color = "black";
           }}
         >
           <img
@@ -103,7 +101,6 @@ const SidePanel = forwardRef(function SidePanel(
           {isImporting ? "Import läuft..." : "Import KMZ File"}
         </button>
 
-        {/* Status */}
         {errorMessage ? (
           <div style={{ marginTop: "14px" }}>{errorMessage}</div>
         ) : null}
@@ -126,7 +123,6 @@ const SidePanel = forwardRef(function SidePanel(
           }}
         />
 
-        {/* Liste */}
         <div
           style={{
             marginTop: "14px",
@@ -135,26 +131,28 @@ const SidePanel = forwardRef(function SidePanel(
           }}
         >
           {hasObstacles ? (
-            obstacles.map((o, index) => (
+            obstacles.map((obstacle, index) => (
               <div
-                key={o.id || `obstacle-${index}`}
+                key={obstacle.id || `obstacle-${index}`}
                 style={{
                   border: "1px solid #e2e8f0",
                   borderRadius: "10px",
                   padding: "10px 12px",
+                  fontFamily: "Gill Sans, sans-serif",
                   marginBottom: "12px",
                 }}
               >
                 <div style={{ fontSize: "13px" }}>
                   <div>
-                    <b>LON:</b> {o.longitude}
+                    <b>LON:</b> {obstacle.longitude}
                   </div>
                   <div>
-                    <b>LAT:</b> {o.latitude}
+                    <b>LAT:</b> {obstacle.latitude}
                   </div>
-                  {o.altitude !== null && o.altitude !== undefined ? (
+                  {obstacle.altitude !== null &&
+                  obstacle.altitude !== undefined ? (
                     <div>
-                      <b>ALT:</b> {o.altitude}
+                      <b>ALT:</b> {obstacle.altitude}
                     </div>
                   ) : null}
                 </div>
@@ -162,12 +160,11 @@ const SidePanel = forwardRef(function SidePanel(
             ))
           ) : (
             <div style={{ textAlign: "center", padding: "30px 0" }}>
-              No File imported
+              No file imported
             </div>
           )}
         </div>
 
-        {/* Clear Button */}
         <button
           onClick={onClearAll}
           hidden={!hasObstacles}
@@ -184,13 +181,13 @@ const SidePanel = forwardRef(function SidePanel(
             borderRadius: "6px",
             transition: "all 0.2s ease",
           }}
-          onMouseEnter={(e) => {
+          onMouseEnter={(event) => {
             if (hasObstacles) {
-              e.target.style.color = "#000000";
+              event.target.style.color = "#000000";
             }
           }}
-          onMouseLeave={(e) => {
-            e.target.style.color = "white";
+          onMouseLeave={(event) => {
+            event.target.style.color = "white";
           }}
         >
           <img
@@ -259,7 +256,6 @@ const SidePanel = forwardRef(function SidePanel(
 
   return (
     <>
-      {/* Sidebar */}
       <div
         style={{
           position: "fixed",
@@ -276,7 +272,6 @@ const SidePanel = forwardRef(function SidePanel(
           animation: "slideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
-        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -321,15 +316,15 @@ const SidePanel = forwardRef(function SidePanel(
               justifyContent: "center",
               lineHeight: "1",
             }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#e2e8f0";
-              e.target.style.color = "#475569";
-              e.target.style.transform = "rotate(90deg) scale(1.1)";
+            onMouseEnter={(event) => {
+              event.target.style.backgroundColor = "#e2e8f0";
+              event.target.style.color = "#475569";
+              event.target.style.transform = "rotate(90deg) scale(1.1)";
             }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "#f1f5f9";
-              e.target.style.color = "#64748b";
-              e.target.style.transform = "rotate(0deg) scale(1)";
+            onMouseLeave={(event) => {
+              event.target.style.backgroundColor = "#f1f5f9";
+              event.target.style.color = "#64748b";
+              event.target.style.transform = "rotate(0deg) scale(1)";
             }}
             title="Close"
           >
@@ -337,7 +332,6 @@ const SidePanel = forwardRef(function SidePanel(
           </button>
         </div>
 
-        {/* Content */}
         <div style={{ color: "#475569", lineHeight: "1.7" }}>{content}</div>
       </div>
 

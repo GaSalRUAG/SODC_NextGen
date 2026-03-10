@@ -1,8 +1,8 @@
 import React from "react";
 
-const MenuBar = ({ onMenuClick, activeMenu }) => {
-  const menuItems = ["Obstacles", "Convert", "Filter", "SIRINA MAPPINGS"];
+const MENU_ITEMS = ["Obstacles", "Convert", "Filter", "SIRINA MAPPINGS"];
 
+const MenuBar = ({ onMenuClick, activeMenu }) => {
   return (
     <div
       style={{
@@ -17,7 +17,6 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
         position: "relative",
       }}
     >
-      {/* Left: Logo  | + Menu Items */}
       <div
         style={{
           display: "flex",
@@ -63,38 +62,38 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
             alignItems: "center",
           }}
         >
-          {menuItems.map((item) => (
+          {MENU_ITEMS.map((item) => (
             <button
               key={item}
               onClick={() => onMenuClick(item)}
               style={{
                 background: "none",
                 border: "1px solid #e2e8f0",
-                color: activeMenu === item ? "black" : "black",
+                color: "black",
                 fontSize: "17px",
                 fontWeight: "50",
                 cursor: "pointer",
                 padding: "8px 12px",
                 borderRadius: "6px",
                 transition: "all 0.2s ease",
-                textDecoration: activeMenu === item ? "none" : "none",
+                textDecoration: "none",
                 textUnderlineOffset: "4px",
               }}
-              onMouseEnter={(e) => {
+              onMouseEnter={(event) => {
                 if (activeMenu !== item) {
-                  e.target.style.color = "#ffffff";
+                  event.target.style.color = "#ffffff";
                 }
-                e.target.style.backgroundColor = "#aeb0b3";
+                event.target.style.backgroundColor = "#aeb0b3";
               }}
-              onMouseLeave={(e) => {
-                e.target.style.color = "black";
-                e.target.style.backgroundColor = "transparent";
+              onMouseLeave={(event) => {
+                event.target.style.color = "black";
+                event.target.style.backgroundColor = "transparent";
               }}
-              onMouseDown={(e) => {
-                e.target.style.backgroundColor = "#000000";
+              onMouseDown={(event) => {
+                event.target.style.backgroundColor = "#000000";
               }}
-              onMouseUp={(e) => {
-                e.target.style.backgroundColor = "transparent";
+              onMouseUp={(event) => {
+                event.target.style.backgroundColor = "transparent";
               }}
             >
               {item}
@@ -103,7 +102,6 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
         </div>
       </div>
 
-      {/* Right: Settings */}
       <button
         onClick={() => onMenuClick("Settings")}
         style={{
@@ -119,22 +117,22 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
           transition: "all 0.2s ease",
           fontSize: "20px",
         }}
-        onMouseEnter={(e) => {
+        onMouseEnter={(event) => {
           if (activeMenu !== "Settings") {
-            e.target.style.color = "#60a5fa";
+            event.target.style.color = "#60a5fa";
           }
-          e.target.style.backgroundColor = "transparent";
+          event.target.style.backgroundColor = "transparent";
         }}
-        onMouseLeave={(e) => {
-          e.target.style.color =
+        onMouseLeave={(event) => {
+          event.target.style.color =
             activeMenu === "Settings" ? "#60a5fa" : "black";
-          e.target.style.backgroundColor = "transparent";
+          event.target.style.backgroundColor = "transparent";
         }}
-        onMouseDown={(e) => {
-          e.target.style.backgroundColor = "#e2e8f0";
+        onMouseDown={(event) => {
+          event.target.style.backgroundColor = "#e2e8f0";
         }}
-        onMouseUp={(e) => {
-          e.target.style.backgroundColor = "transparent";
+        onMouseUp={(event) => {
+          event.target.style.backgroundColor = "transparent";
         }}
         title="Settings"
       >

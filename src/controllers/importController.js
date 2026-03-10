@@ -1,15 +1,4 @@
-/**
- * ImportController
- * Steuert Import + Reset und verbindet Store, SidePanel und MapView.
- */
 export default class ImportController {
-  /**
-   * @param {object} params
-   * @param {import("../services/importService").default} params.importService
-   * @param {import("../stores/obstacleStore").default} params.obstacleStore
-   * @param {{ renderObstaclesMarkers: Function, clearObstacleMarkers: Function }} params.mapView
-   * @param {{ setInfoMessage: Function, setErrorMessage: Function }} params.sidePanel
-   */
   constructor({ importService, obstacleStore, mapView, sidePanel }) {
     this.importService = importService;
     this.obstacleStore = obstacleStore;
@@ -17,11 +6,7 @@ export default class ImportController {
     this.sidePanel = sidePanel;
   }
 
-  /**
-   * Importiert eine KMZ Datei und zeigt Obstacles an.
-   * Vor Import werden alte Daten gelöscht (diagramm-/flow-konform).
-   * @param {File} file
-   */
+  // Handles the KMZ import process and updates store, map and UI
   async importKmzFile(file) {
     try {
       this.resetObstacles();
@@ -42,9 +27,7 @@ export default class ImportController {
     }
   }
 
-  /**
-   * Löscht alle Obstacles (Store + Map + Messages).
-   */
+  // Clears all obstacles from store, map and UI
   resetObstacles() {
     this.obstacleStore.clear();
     this.mapView.clearObstacleMarkers();

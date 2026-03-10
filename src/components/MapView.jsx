@@ -41,8 +41,11 @@ const MapView = forwardRef(function MapView(_, ref) {
     >
       <TileLayer url={TILE_URL} />
 
-      {obstacles.map((o) => (
-        <Marker key={o.id} position={[o.latitude, o.longitude]} />
+      {obstacles.map((obstacle) => (
+        <Marker
+          key={obstacle.id}
+          position={[obstacle.latitude, obstacle.longitude]}
+        />
       ))}
     </MapContainer>
   );

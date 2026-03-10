@@ -1,48 +1,36 @@
 import JSZip from "jszip";
 import Obstacle from "../models/obstacles";
 
-/**
- * KMZService
- * - liest KMZ
- * - extrahiert KML Content
- * - parsed Obstacles aus KML (Point Placemarks)
- */
 export default class KMZService {
-  /**
-   * @param {File} file
-   * @returns {Promise<ArrayBuffer>}
-   */
   async readKmzFile(file) {
     return file.arrayBuffer();
   }
 
-  /**
-   * @param {ArrayBuffer} kmzBuffer
-   * @returns {Promise<string>}
-   */
   async extractKmlContent(kmzBuffer) {
-    const zip = await JSZip.loadAsync(kmzBuffer);
+    let zip;
+
+    try {
+      zip = await JSZip.loadAsync(kmzBuffer);
+    } catch {
+      throw new Error("The selected file is not a valid KMZ file.");
+    }
 
     const kmlEntry = Object.keys(zip.files).find((name) =>
       name.toLowerCase().endsWith(".kml"),
     );
 
     if (!kmlEntry) {
-      throw new Error("Invalid KMZ: keine .kml Datei gefunden.");
+      throw new Error("The KMZ file does not contain a KML file.");
     }
 
     return zip.files[kmlEntry].async("text");
   }
 
-  /**
-   * @param {string} kmlContent
-   * @returns {Obstacle[]}
-   */
   parseObstaclesFromKml(kmlContent) {
     const xml = new DOMParser().parseFromString(kmlContent, "text/xml");
 
     if (xml.querySelector("parsererror")) {
-      throw new Error("Invalid KMZ: KML konnte nicht gelesen werden.");
+      throw new Error("The KML content could not be parsed.");
     }
 
     const placemarks = Array.from(xml.getElementsByTagName("Placemark"));
@@ -58,7 +46,7 @@ export default class KMZService {
       const raw = (coordinatesNode.textContent || "").trim();
       if (!raw) return;
 
-      const parts = raw.split(",").map((v) => v.trim());
+      const parts = raw.split(",").map((value) => value.trim());
       if (parts.length < 2) return;
 
       const longitude = Number(parts[0]);
