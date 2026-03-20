@@ -26,7 +26,7 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
       >
         <div>
           <img
-            src="./IMG/Swiss_ICON.webp"
+            src="../IMG/IMG/SODC_Logo.png"
             alt="SODC Logo"
             width="45"
             height="45"
