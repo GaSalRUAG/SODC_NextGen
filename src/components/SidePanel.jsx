@@ -5,6 +5,9 @@ import React, {
   useState,
 } from "react";
 
+import ImportIcon from "../IMG/IMG/ImportIcon.png";
+import RemoveIcon from "../IMG/IMG/RemoveIcon.png";
+
 const SidePanel = forwardRef(function SidePanel(
   { isOpen, activeMenu, onClose, onImportKmzFile, onClearAll, obstacles = [] },
   ref,
@@ -89,7 +92,7 @@ const SidePanel = forwardRef(function SidePanel(
           }}
         >
           <img
-            src="./IMG/ImportIcon.png"
+            src={ImportIcon}
             alt="Import"
             style={{
               width: "20px",
@@ -191,7 +194,7 @@ const SidePanel = forwardRef(function SidePanel(
           }}
         >
           <img
-            src="./IMG/RemoveIcon.png"
+            src={RemoveIcon}
             alt="Clear"
             style={{
               width: "20px",
