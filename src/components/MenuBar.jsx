@@ -1,7 +1,8 @@
 import React from "react";
-import SwissLogo from "../IMG/IMG/Swiss_ICON.webp";
 
 const MENU_ITEMS = ["Obstacles", "Convert", "Filter", "SIRINA MAPPINGS"];
+
+import SwissIcon from "../IMG/IMG/Swiss_ICON.webp";
 
 const MenuBar = ({ onMenuClick, activeMenu }) => {
   return (
@@ -27,8 +28,7 @@ const MenuBar = ({ onMenuClick, activeMenu }) => {
       >
         <div>
           <img
-            src={SwissLogo}
-            alt="SODC Logo"
+            src={SwissIcon}
             width="45"
             height="45"
             style={{ borderRadius: "8px" }}

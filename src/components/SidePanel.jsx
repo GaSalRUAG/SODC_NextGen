@@ -134,33 +134,18 @@ const SidePanel = forwardRef(function SidePanel(
           }}
         >
           {hasObstacles ? (
-            obstacles.map((obstacle, index) => (
-              <div
-                key={obstacle.id || `obstacle-${index}`}
-                style={{
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "10px",
-                  padding: "10px 12px",
-                  fontFamily: "Gill Sans, sans-serif",
-                  marginBottom: "12px",
-                }}
-              >
-                <div style={{ fontSize: "13px" }}>
-                  <div>
-                    <b>LON:</b> {obstacle.longitude}
-                  </div>
-                  <div>
-                    <b>LAT:</b> {obstacle.latitude}
-                  </div>
-                  {obstacle.altitude !== null &&
-                  obstacle.altitude !== undefined ? (
-                    <div>
-                      <b>ALT:</b> {obstacle.altitude}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ))
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: "10px",
+                padding: "10px 12px",
+                fontFamily: "Gill Sans, sans-serif",
+                fontSize: "13px",
+              }}
+            >
+              Die Detail-Liste ist deaktiviert, damit Karte und Zoom flüssiger
+              bleiben.
+            </div>
           ) : (
             <div style={{ textAlign: "center", padding: "30px 0" }}>
               No file imported
