@@ -1,14 +1,13 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from "react";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 const MAP_CENTER = [46.8182, 8.2275];
 const INITIAL_ZOOM = 9;
-const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const ICON_CACHE = new Map();
 const MIN_CLUSTER_COUNT = 30;
-const MAP_MARKER_STYLE_ID = "map-obstacle-marker-styles";
+const MAP_STYLE_ID = "map-obstacle-marker-styles";
+const SWISSTOPO_TILE_URL =
+  "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg";
 
 function getGridMultiplierByCount(count) {
   if (count >= 7000) return 3.2;
@@ -79,66 +78,20 @@ function getClusterLabel(count) {
   return String(count);
 }
 
-function getObstacleIcon(count = 1) {
-  const isCluster = count > 1;
-  const clusterStyle = isCluster
-    ? getClusterVisualStyle(count)
-    : { size: 10, color: "#ef4444", ring: "#7f1d1d" };
-  const label = isCluster ? getClusterLabel(count) : "";
-  const key = `${clusterStyle.size}-${clusterStyle.color}-${clusterStyle.ring}-${label || "single"}`;
-  if (ICON_CACHE.has(key)) return ICON_CACHE.get(key);
-
-  const html = isCluster
-    ? `<div class="obstacle-marker obstacle-marker--cluster" style="--marker-size:${clusterStyle.size}px;--marker-color:${clusterStyle.color};--marker-ring:${clusterStyle.ring};">${label}</div>`
-    : `<div class="obstacle-marker obstacle-marker--single" style="--marker-size:${clusterStyle.size}px;--marker-color:${clusterStyle.color};--marker-ring:${clusterStyle.ring};"></div>`;
-
-  const icon = L.divIcon({
-    className: "obstacle-marker-icon",
-    html,
-    iconSize: [clusterStyle.size, clusterStyle.size],
-    iconAnchor: [clusterStyle.size / 2, clusterStyle.size / 2],
-  });
-  ICON_CACHE.set(key, icon);
-  return icon;
-}
-
-function ZoomTracker({ onZoomChange }) {
-  const map = useMapEvents({
-    moveend(event) {
-      onZoomChange(event.target.getZoom(), event.target.getBounds());
-    },
-    zoomend(event) {
-      onZoomChange(event.target.getZoom(), event.target.getBounds());
-    },
-  });
-
-  useEffect(() => {
-    onZoomChange(map.getZoom(), map.getBounds());
-  }, [map, onZoomChange]);
-
-  return null;
-}
-
 const MapView = forwardRef(function MapView(_, ref) {
+  const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const markersRef = useRef(new Map());
   const [obstacles, setObstacles] = useState([]);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [viewport, setViewport] = useState(null);
 
-  const handleViewportChange = useCallback((nextZoom, bounds) => {
-    setZoom(nextZoom);
-    setViewport(createViewportBounds(bounds));
-  }, []);
-
   useEffect(() => {
-    if (document.getElementById(MAP_MARKER_STYLE_ID)) return;
+    if (document.getElementById(MAP_STYLE_ID)) return;
 
     const styleTag = document.createElement("style");
-    styleTag.id = MAP_MARKER_STYLE_ID;
+    styleTag.id = MAP_STYLE_ID;
     styleTag.textContent = `
-      .obstacle-marker-icon {
-        background: transparent;
-        border: none;
-      }
       .obstacle-marker {
         width: var(--marker-size);
         height: var(--marker-size);
@@ -147,7 +100,6 @@ const MapView = forwardRef(function MapView(_, ref) {
         align-items: center;
         justify-content: center;
         box-sizing: border-box;
-        transform: translateZ(0);
       }
       .obstacle-marker--cluster {
         background: var(--marker-color);
@@ -161,9 +113,56 @@ const MapView = forwardRef(function MapView(_, ref) {
         border: 1px solid var(--marker-ring);
         border-radius: 2px;
       }
+      .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left {
+        display: none;
+      }
     `;
 
     document.head.appendChild(styleTag);
+  }, []);
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      center: [MAP_CENTER[1], MAP_CENTER[0]],
+      zoom: INITIAL_ZOOM,
+      minZoom: 5,
+      maxZoom: 18,
+      attributionControl: false,
+      style: {
+        version: 8,
+        sources: {
+          swisstopo: {
+            type: "raster",
+            tiles: [SWISSTOPO_TILE_URL],
+            tileSize: 256,
+            attribution:
+              '<a href="https://www.swisstopo.admin.ch" target="_blank" rel="noreferrer">swisstopo</a>',
+          },
+        },
+        layers: [{ id: "swisstopo-layer", type: "raster", source: "swisstopo" }],
+      },
+    });
+
+    mapRef.current = map;
+
+    const updateViewState = () => {
+      setZoom(map.getZoom());
+      setViewport(createViewportBounds(map.getBounds()));
+    };
+
+    map.on("load", updateViewState);
+    map.on("moveend", updateViewState);
+    map.on("zoomend", updateViewState);
+
+    return () => {
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current.clear();
+      map.remove();
+      mapRef.current = null;
+    };
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -252,28 +251,54 @@ const MapView = forwardRef(function MapView(_, ref) {
     return clustered;
   }, [obstacles, zoom, viewport]);
 
-  return (
-    <MapContainer
-      center={MAP_CENTER}
-      zoom={INITIAL_ZOOM}
-      minZoom={5}
-      maxZoom={18}
-      zoomControl={false}
-      markerZoomAnimation={false}
-      style={{ width: "100%", height: "100%" }}
-    >
-      <ZoomTracker onZoomChange={handleViewportChange} />
-      <TileLayer url={TILE_URL} />
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
 
-      {markersToRender.map((obstacle) => (
-        <Marker
-          key={obstacle.id}
-          position={[obstacle.latitude, obstacle.longitude]}
-          icon={getObstacleIcon(obstacle.count)}
-        />
-      ))}
-    </MapContainer>
-  );
+    const nextIds = new Set();
+    for (let index = 0; index < markersToRender.length; index += 1) {
+      const obstacle = markersToRender[index];
+      const markerId = String(obstacle.id);
+      nextIds.add(markerId);
+
+      const isCluster = obstacle.count > 1;
+      const clusterStyle = isCluster
+        ? getClusterVisualStyle(obstacle.count)
+        : { size: 10, color: "#ef4444", ring: "#7f1d1d" };
+
+      const existing = markersRef.current.get(markerId);
+      if (existing) {
+        existing.setLngLat([obstacle.longitude, obstacle.latitude]);
+        continue;
+      }
+
+      const element = document.createElement("div");
+      element.className = `obstacle-marker ${isCluster ? "obstacle-marker--cluster" : "obstacle-marker--single"}`;
+      element.style.setProperty("--marker-size", `${clusterStyle.size}px`);
+      element.style.setProperty("--marker-color", clusterStyle.color);
+      element.style.setProperty("--marker-ring", clusterStyle.ring);
+      if (isCluster) {
+        element.textContent = getClusterLabel(obstacle.count);
+      }
+
+      const marker = new maplibregl.Marker({
+        element,
+        anchor: "center",
+      })
+        .setLngLat([obstacle.longitude, obstacle.latitude])
+        .addTo(map);
+
+      markersRef.current.set(markerId, marker);
+    }
+
+    markersRef.current.forEach((marker, markerId) => {
+      if (nextIds.has(markerId)) return;
+      marker.remove();
+      markersRef.current.delete(markerId);
+    });
+  }, [markersToRender]);
+
+  return <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />;
 });
 
 export default MapView;
