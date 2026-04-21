@@ -12,17 +12,29 @@ export default class ImportController {
       this.resetObstacles();
 
       this.sidePanel.setErrorMessage("");
-      this.sidePanel.setInfoMessage("Import läuft...");
 
       const obstacles = await this.importService.loadObstaclesFromKMZ(file);
 
       this.obstacleStore.setObstacles(obstacles);
       this.mapView.renderObstaclesMarkers(obstacles);
-
-      this.sidePanel.setInfoMessage(`${obstacles.length} obstacles displayed`);
     } catch (error) {
-      this.sidePanel.setInfoMessage("");
       this.sidePanel.setErrorMessage(error?.message || "Invalid KMZ");
+      throw error;
+    }
+  }
+
+  async importAixmFile(file) {
+    try {
+      this.resetObstacles();
+
+      this.sidePanel.setErrorMessage("");
+
+      const obstacles = await this.importService.loadObstaclesFromAIXM(file);
+
+      this.obstacleStore.setObstacles(obstacles);
+      this.mapView.renderObstaclesMarkers(obstacles);
+    } catch (error) {
+      this.sidePanel.setErrorMessage(error?.message || "Invalid AIXM");
       throw error;
     }
   }
@@ -32,6 +44,5 @@ export default class ImportController {
     this.obstacleStore.clear();
     this.mapView.clearObstacleMarkers();
     this.sidePanel.setErrorMessage("");
-    this.sidePanel.setInfoMessage("");
   }
 }

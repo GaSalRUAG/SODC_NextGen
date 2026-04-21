@@ -76,6 +76,17 @@ function App() {
     }
   }
 
+  async function handleImportAixmFile(file) {
+    if (!importControllerRef.current) return;
+
+    try {
+      await importControllerRef.current.importAixmFile(file);
+    } catch (error) {
+      setToastMessage(error?.message || "Import failed.");
+      setShowToast(true);
+    }
+  }
+
   function handleResetObstacles() {
     if (!importControllerRef.current) return;
     importControllerRef.current.resetObstacles();
@@ -105,6 +116,7 @@ function App() {
           onClose={handleCloseSidePanel}
           obstacles={obstacles}
           onImportKmzFile={handleImportKmzFile}
+          onImportAixmFile={handleImportAixmFile}
           onClearAll={handleResetObstacles}
         />
 

@@ -1,164 +1,195 @@
-import React, {
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
+import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
 import ImportIcon from "../IMG/IMG/ImportIcon.png";
 import RemoveIcon from "../IMG/IMG/RemoveIcon.png";
 
+const importButtonBaseStyle = {
+  width: "100%",
+  backgroundColor: "#ACDC92",
+  border: "1px solid #e2e8f0",
+  color: "black",
+  fontSize: "15px",
+  fontWeight: "50",
+  padding: "10px 12px",
+  borderRadius: "6px",
+  transition: "all 0.2s ease",
+};
+
 const SidePanel = forwardRef(function SidePanel(
-  { isOpen, activeMenu, onClose, onImportKmzFile, onClearAll, obstacles = [] },
+  {
+    isOpen,
+    activeMenu,
+    onClose,
+    onImportKmzFile,
+    onImportAixmFile,
+    onClearAll,
+    obstacles = [],
+  },
   ref,
 ) {
-  const fileInputRef = useRef(null);
+  const kmzInputRef = useRef(null);
+  const aixmInputRef = useRef(null);
 
   const [errorMessage, setErrorMessage] = useState("");
-  const [infoMessage, setInfoMessage] = useState("");
-  const [isImporting, setIsImporting] = useState(false);
+  const [importingKind, setImportingKind] = useState(null);
 
   useImperativeHandle(ref, () => ({
     setErrorMessage(message) {
       setErrorMessage(message);
     },
-    setInfoMessage(message) {
-      setInfoMessage(message);
-    },
   }));
 
   if (!isOpen) return null;
 
-  function openFilePicker() {
+  const obstacleCount = Array.isArray(obstacles) ? obstacles.length : 0;
+  const hasObstacles = obstacleCount > 0;
+  const isImporting = importingKind !== null;
+
+  function openKmzPicker() {
     setErrorMessage("");
-    setInfoMessage("");
-    fileInputRef.current?.click();
+    kmzInputRef.current?.click();
   }
 
-  async function handleFileChange(event) {
+  function openAixmPicker() {
+    setErrorMessage("");
+    aixmInputRef.current?.click();
+  }
+
+  async function handleKmzFileChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
-      setIsImporting(true);
+      setImportingKind("kmz");
       setErrorMessage("");
-      setInfoMessage("Import läuft...");
-
       await onImportKmzFile(file);
     } catch (error) {
-      setInfoMessage("");
       setErrorMessage(error?.message || "Invalid KMZ");
     } finally {
-      setIsImporting(false);
+      setImportingKind(null);
       event.target.value = "";
     }
   }
 
-  function renderObstaclesPanel() {
-    const hasObstacles = Array.isArray(obstacles) && obstacles.length > 0;
+  async function handleAixmFileChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
+    try {
+      setImportingKind("aixm");
+      setErrorMessage("");
+      await onImportAixmFile(file);
+    } catch (error) {
+      setErrorMessage(error?.message || "Invalid AIXM");
+    } finally {
+      setImportingKind(null);
+      event.target.value = "";
+    }
+  }
+
+  function renderImportButton({ onClick, label, disabled, marginTop = "10px" }) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        style={{
+          ...importButtonBaseStyle,
+          marginTop,
+          cursor: disabled ? "not-allowed" : "pointer",
+        }}
+        onMouseEnter={(event) => {
+          if (!disabled) {
+            event.currentTarget.style.color = "#ffffff";
+          }
+        }}
+        onMouseLeave={(event) => {
+          event.currentTarget.style.color = "black";
+        }}
+      >
+        <img
+          src={ImportIcon}
+          alt=""
+          style={{
+            width: "20px",
+            height: "20px",
+            marginRight: "8px",
+            verticalAlign: "middle",
+          }}
+        />
+        {label}
+      </button>
+    );
+  }
+
+  function renderObstaclesPanel() {
     return (
       <div>
+        <div
+          style={{
+            marginBottom: "18px",
+            padding: "12px 14px",
+            borderRadius: "8px",
+            backgroundColor: "#f1f5f9",
+            border: "1px solid #e2e8f0",
+            fontFamily: "Gill Sans, sans-serif",
+            fontSize: "16px",
+            fontWeight: "600",
+            color: "#0f172a",
+          }}
+        >
+          {obstacleCount === 1
+            ? "1 Hindernis importiert"
+            : `${obstacleCount} Hindernisse importiert`}
+        </div>
+
         <input
-          ref={fileInputRef}
+          ref={kmzInputRef}
           type="file"
           accept=".kmz"
           style={{ display: "none" }}
-          onChange={handleFileChange}
+          onChange={handleKmzFileChange}
+        />
+        <input
+          ref={aixmInputRef}
+          type="file"
+          accept=".xml,.aixm,text/xml,application/xml"
+          style={{ display: "none" }}
+          onChange={handleAixmFileChange}
         />
 
-        <button
-          onClick={openFilePicker}
-          disabled={isImporting}
-          style={{
-            width: "100%",
-            backgroundColor: "#ACDC92",
-            border: "1px solid #e2e8f0",
-            color: "black",
-            fontSize: "15px",
-            fontWeight: "50",
-            cursor: isImporting ? "not-allowed" : "pointer",
-            padding: "10px 12px",
-            borderRadius: "6px",
-            transition: "all 0.2s ease",
-          }}
-          onMouseEnter={(event) => {
-            if (!isImporting) {
-              event.target.style.color = "#ffffff";
-            }
-          }}
-          onMouseLeave={(event) => {
-            event.target.style.color = "black";
-          }}
-        >
-          <img
-            src={ImportIcon}
-            alt="Import"
-            style={{
-              width: "20px",
-              height: "20px",
-              marginRight: "8px",
-              verticalAlign: "middle",
-            }}
-          />
-          {isImporting ? "Import läuft..." : "Import KMZ File"}
-        </button>
+        {renderImportButton({
+          onClick: openKmzPicker,
+          disabled: isImporting,
+          marginTop: "4px",
+          label: importingKind === "kmz" ? "Import läuft..." : "Import KMZ File",
+        })}
+
+        {renderImportButton({
+          onClick: openAixmPicker,
+          disabled: isImporting,
+          label: importingKind === "aixm" ? "Import läuft..." : "Import AIXM File",
+        })}
 
         {errorMessage ? (
-          <div style={{ marginTop: "14px" }}>{errorMessage}</div>
-        ) : null}
-
-        {!errorMessage && hasObstacles ? (
-          <div style={{ marginTop: "14px" }}>
-            {obstacles.length} obstacles displayed
+          <div
+            style={{
+              marginTop: "14px",
+              color: "#b91c1c",
+              fontSize: "14px",
+            }}
+          >
+            {errorMessage}
           </div>
         ) : null}
 
-        {!errorMessage && !hasObstacles && infoMessage ? (
-          <div style={{ marginTop: "14px" }}>{infoMessage}</div>
-        ) : null}
-
-        <div
-          style={{
-            marginTop: "10px",
-            marginBottom: "10px",
-            borderBottom: "2px solid #e2e8f0",
-          }}
-        />
-
-        <div
-          style={{
-            marginTop: "14px",
-            maxHeight: "55vh",
-            overflowY: "auto",
-          }}
-        >
-          {hasObstacles ? (
-            <div
-              style={{
-                border: "1px solid #e2e8f0",
-                borderRadius: "10px",
-                padding: "10px 12px",
-                fontFamily: "Gill Sans, sans-serif",
-                fontSize: "13px",
-              }}
-            >
-              Die Detail-Liste ist deaktiviert, damit Karte und Zoom flüssiger
-              bleiben.
-            </div>
-          ) : (
-            <div style={{ textAlign: "center", padding: "30px 0" }}>
-              No file imported
-            </div>
-          )}
-        </div>
-
         <button
+          type="button"
           onClick={onClearAll}
           hidden={!hasObstacles}
           style={{
             width: "100%",
-            marginTop: "14px",
+            marginTop: "18px",
             backgroundColor: "#F5293D",
             border: "1px solid #e2e8f0",
             color: "white",
@@ -171,16 +202,16 @@ const SidePanel = forwardRef(function SidePanel(
           }}
           onMouseEnter={(event) => {
             if (hasObstacles) {
-              event.target.style.color = "#000000";
+              event.currentTarget.style.color = "#000000";
             }
           }}
           onMouseLeave={(event) => {
-            event.target.style.color = "white";
+            event.currentTarget.style.color = "white";
           }}
         >
           <img
             src={RemoveIcon}
-            alt="Clear"
+            alt=""
             style={{
               width: "20px",
               height: "20px",
@@ -287,6 +318,7 @@ const SidePanel = forwardRef(function SidePanel(
           </h2>
 
           <button
+            type="button"
             onClick={onClose}
             style={{
               background: "#f1f5f9",
@@ -305,14 +337,14 @@ const SidePanel = forwardRef(function SidePanel(
               lineHeight: "1",
             }}
             onMouseEnter={(event) => {
-              event.target.style.backgroundColor = "#e2e8f0";
-              event.target.style.color = "#475569";
-              event.target.style.transform = "rotate(90deg) scale(1.1)";
+              event.currentTarget.style.backgroundColor = "#e2e8f0";
+              event.currentTarget.style.color = "#475569";
+              event.currentTarget.style.transform = "rotate(90deg) scale(1.1)";
             }}
             onMouseLeave={(event) => {
-              event.target.style.backgroundColor = "#f1f5f9";
-              event.target.style.color = "#64748b";
-              event.target.style.transform = "rotate(0deg) scale(1)";
+              event.currentTarget.style.backgroundColor = "#f1f5f9";
+              event.currentTarget.style.color = "#64748b";
+              event.currentTarget.style.transform = "rotate(0deg) scale(1)";
             }}
             title="Close"
           >
