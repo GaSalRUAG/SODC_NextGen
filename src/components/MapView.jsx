@@ -7,6 +7,7 @@ const INITIAL_ZOOM = 9;
 const MAP_STYLE_ID = "map-obstacle-map-styles";
 const OBSTACLES_SOURCE_ID = "obstacles";
 const OBSTACLES_LAYER_ID = "obstacles-circles";
+const OBSTACLES_LINES_LAYER_ID = "obstacles-lines";
 
 const EMPTY_FEATURE_COLLECTION = { type: "FeatureCollection", features: [] };
 
@@ -19,6 +20,31 @@ function obstaclesToFeatureCollection(obstacles) {
   const features = [];
   for (let index = 0; index < obstacles.length; index += 1) {
     const obstacle = obstacles[index];
+
+    if (obstacle.geometryType === "line") {
+      const coordinates = (obstacle.coordinates || []).filter(
+        (vertex) =>
+          Array.isArray(vertex) &&
+          Number.isFinite(vertex[0]) &&
+          Number.isFinite(vertex[1]),
+      );
+
+      if (coordinates.length < 2) continue;
+
+      features.push({
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates,
+        },
+        properties: {
+          id: obstacle.id,
+          geometryType: "line",
+        },
+      });
+      continue;
+    }
+
     const latitude = Number(obstacle.latitude);
     const longitude = Number(obstacle.longitude);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
@@ -31,11 +57,41 @@ function obstaclesToFeatureCollection(obstacles) {
       },
       properties: {
         id: obstacle.id,
+        geometryType: "point",
       },
     });
   }
 
   return { type: "FeatureCollection", features };
+}
+
+function extendBoundsWithCoordinates(bounds, coordinates) {
+  if (!coordinates?.length) return;
+
+  if (typeof coordinates[0] === "number") {
+    bounds.extend(coordinates);
+    return;
+  }
+
+  for (let index = 0; index < coordinates.length; index += 1) {
+    extendBoundsWithCoordinates(bounds, coordinates[index]);
+  }
+}
+
+function setObstacleSourceData(map, geojson) {
+  const source = map.getSource(OBSTACLES_SOURCE_ID);
+  if (source && typeof source.setData === "function") {
+    source.setData(geojson);
+  }
+}
+
+function whenStyleReady(map, apply) {
+  if (!map) return;
+  if (map.isStyleLoaded()) {
+    apply();
+    return;
+  }
+  map.once("load", apply);
 }
 
 const MapView = forwardRef(function MapView(_, ref) {
@@ -85,9 +141,33 @@ const MapView = forwardRef(function MapView(_, ref) {
         layers: [
           { id: "swisstopo-layer", type: "raster", source: "swisstopo" },
           {
+            id: OBSTACLES_LINES_LAYER_ID,
+            type: "line",
+            source: OBSTACLES_SOURCE_ID,
+            filter: ["==", ["geometry-type"], "LineString"],
+            paint: {
+              "line-color": "#e11d48",
+              "line-width": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                5,
+                1.5,
+                11,
+                2.5,
+                14,
+                4,
+                18,
+                6,
+              ],
+              "line-opacity": 0.92,
+            },
+          },
+          {
             id: OBSTACLES_LAYER_ID,
             type: "circle",
             source: OBSTACLES_SOURCE_ID,
+            filter: ["==", ["geometry-type"], "Point"],
             paint: {
               "circle-radius": [
                 "interpolate",
@@ -129,10 +209,7 @@ const MapView = forwardRef(function MapView(_, ref) {
     mapRef.current = map;
 
     map.on("load", () => {
-      const source = map.getSource(OBSTACLES_SOURCE_ID);
-      if (source && typeof source.setData === "function") {
-        source.setData(obstaclesToFeatureCollection(obstaclesRef.current));
-      }
+      setObstacleSourceData(map, obstaclesToFeatureCollection(obstaclesRef.current));
     });
 
     return () => {
@@ -145,20 +222,38 @@ const MapView = forwardRef(function MapView(_, ref) {
     renderObstaclesMarkers(obstaclesList) {
       obstaclesRef.current = obstaclesList;
       const map = mapRef.current;
-      if (!map?.isStyleLoaded()) return;
-      const source = map.getSource(OBSTACLES_SOURCE_ID);
-      if (source && typeof source.setData === "function") {
-        source.setData(obstaclesToFeatureCollection(obstaclesList));
-      }
+      whenStyleReady(map, () => {
+        setObstacleSourceData(map, obstaclesToFeatureCollection(obstaclesRef.current));
+      });
     },
     clearObstacleMarkers() {
       obstaclesRef.current = [];
       const map = mapRef.current;
-      if (!map?.isStyleLoaded()) return;
-      const source = map.getSource(OBSTACLES_SOURCE_ID);
-      if (source && typeof source.setData === "function") {
-        source.setData(EMPTY_FEATURE_COLLECTION);
-      }
+      whenStyleReady(map, () => {
+        setObstacleSourceData(map, EMPTY_FEATURE_COLLECTION);
+      });
+    },
+    fitMapToObstacles(obstaclesList) {
+      if (!obstaclesList?.length) return;
+      const geojson = obstaclesToFeatureCollection(obstaclesList);
+      if (!geojson.features.length) return;
+
+      const map = mapRef.current;
+      const runFit = () => {
+        if (!map?.isStyleLoaded()) return;
+        const bounds = new maplibregl.LngLatBounds();
+        for (let index = 0; index < geojson.features.length; index += 1) {
+          extendBoundsWithCoordinates(
+            bounds,
+            geojson.features[index].geometry.coordinates,
+          );
+        }
+        if (!bounds.isEmpty()) {
+          map.fitBounds(bounds, { padding: 60, maxZoom: 16, duration: 650 });
+        }
+      };
+
+      whenStyleReady(map, runFit);
     },
   }));
 

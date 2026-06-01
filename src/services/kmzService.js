@@ -55,12 +55,17 @@ export default class KMZService {
 
       if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return;
 
+      const parsedAltitude = Number.isFinite(altitude) ? altitude : null;
+
       obstacles.push(
         new Obstacle({
           id: `obstacle-${index}`,
           longitude,
           latitude,
-          altitude: Number.isFinite(altitude) ? altitude : null,
+          altitude: parsedAltitude,
+          geometryType: "point",
+          heightKnown: parsedAltitude != null,
+          source: "kmz",
         }),
       );
     });

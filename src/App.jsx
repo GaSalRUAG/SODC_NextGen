@@ -6,11 +6,16 @@ import SidePanel from "./components/SidePanel";
 import ImportController from "./controllers/importController";
 import ImportService from "./services/importService";
 import ObstacleStore from "./stores/obstacleStore";
+import { applyLineMerge } from "./utils/obstacleMerge";
 
 function App() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [obstacles, setObstacles] = useState([]);
+  const [altitudeFilterMeters, setAltitudeFilterMeters] = useState(0);
+  const [showPointObstacles, setShowPointObstacles] = useState(true);
+  const [showLineObstacles, setShowLineObstacles] = useState(true);
+  const [mergeLineSegments, setMergeLineSegments] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
 
@@ -27,14 +32,28 @@ function App() {
     });
   }, [obstacleStore]);
 
-  useEffect(() => {
-    if (!mapViewRef.current || !sidePanelRef.current) return;
+  const maxObstacleAltitude = useMemo(() => {
+    const altitudes = obstacles
+      .filter((obstacle) => obstacle.heightKnown)
+      .map((obstacle) => Number(obstacle.altitude))
+      .filter((altitude) => Number.isFinite(altitude) && altitude >= 0);
 
+    return altitudes.length ? Math.ceil(Math.max(...altitudes)) : 0;
+  }, [obstacles]);
+
+  const effectiveAltitudeFilterMeters = useMemo(() => {
+    if (maxObstacleAltitude <= 0) return 0;
+    const selected = Number(altitudeFilterMeters) || 0;
+    if (selected <= 0) return maxObstacleAltitude;
+    return Math.min(selected, maxObstacleAltitude);
+  }, [maxObstacleAltitude, altitudeFilterMeters]);
+
+  useEffect(() => {
     importControllerRef.current = new ImportController({
       importService,
       obstacleStore,
-      mapView: mapViewRef.current,
-      sidePanel: sidePanelRef.current,
+      getMapView: () => mapViewRef.current,
+      getSidePanel: () => sidePanelRef.current,
     });
   }, [importService, obstacleStore]);
 
@@ -48,6 +67,57 @@ function App() {
 
     return () => clearTimeout(timer);
   }, [showToast]);
+
+  const obstacleStats = useMemo(() => {
+    const pointCount = obstacles.filter(
+      (obstacle) => obstacle.geometryType === "point",
+    ).length;
+    const lineCount = obstacles.filter(
+      (obstacle) => obstacle.geometryType === "line" && !obstacle.merged,
+    ).length;
+    const unknownHeightCount = obstacles.filter(
+      (obstacle) => !obstacle.heightKnown,
+    ).length;
+
+    return { pointCount, lineCount, unknownHeightCount };
+  }, [obstacles]);
+
+  const displayObstacles = useMemo(() => {
+    return applyLineMerge(obstacles, mergeLineSegments);
+  }, [obstacles, mergeLineSegments]);
+
+  const filteredObstacles = useMemo(() => {
+    return displayObstacles.filter((obstacle) => {
+      if (obstacle.geometryType === "point" && !showPointObstacles) {
+        return false;
+      }
+      if (obstacle.geometryType === "line" && !showLineObstacles) {
+        return false;
+      }
+
+      if (!obstacle.heightKnown) {
+        return true;
+      }
+
+      const altitude = Number(obstacle.altitude);
+      if (!Number.isFinite(altitude)) {
+        return true;
+      }
+
+      return altitude <= effectiveAltitudeFilterMeters;
+    });
+  }, [
+    displayObstacles,
+    showPointObstacles,
+    showLineObstacles,
+    effectiveAltitudeFilterMeters,
+  ]);
+
+  useEffect(() => {
+    const mapView = mapViewRef.current;
+    if (!mapView) return;
+    mapView.renderObstaclesMarkers(filteredObstacles);
+  }, [filteredObstacles]);
 
   function handleMenuClick(menuItem) {
     if (activeMenu === menuItem && isSidePanelOpen) {
@@ -90,6 +160,10 @@ function App() {
   function handleResetObstacles() {
     if (!importControllerRef.current) return;
     importControllerRef.current.resetObstacles();
+    setShowPointObstacles(true);
+    setShowLineObstacles(true);
+    setMergeLineSegments(false);
+    setAltitudeFilterMeters(0);
   }
 
   return (
@@ -118,6 +192,20 @@ function App() {
           onImportKmzFile={handleImportKmzFile}
           onImportAixmFile={handleImportAixmFile}
           onClearAll={handleResetObstacles}
+          filteredObstacleCount={filteredObstacles.length}
+          displayObstacleCount={displayObstacles.length}
+          altitudeFilterMeters={effectiveAltitudeFilterMeters}
+          altitudeFilterMaxMeters={maxObstacleAltitude}
+          onAltitudeFilterChange={setAltitudeFilterMeters}
+          showPointObstacles={showPointObstacles}
+          showLineObstacles={showLineObstacles}
+          mergeLineSegments={mergeLineSegments}
+          onShowPointObstaclesChange={setShowPointObstacles}
+          onShowLineObstaclesChange={setShowLineObstacles}
+          onMergeLineSegmentsChange={setMergeLineSegments}
+          pointCount={obstacleStats.pointCount}
+          lineCount={obstacleStats.lineCount}
+          unknownHeightCount={obstacleStats.unknownHeightCount}
         />
 
         <div
@@ -156,3 +244,5 @@ function App() {
 }
 
 export default App;
+
+

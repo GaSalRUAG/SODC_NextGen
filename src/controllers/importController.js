@@ -1,9 +1,19 @@
 export default class ImportController {
-  constructor({ importService, obstacleStore, mapView, sidePanel }) {
+  constructor({ importService, obstacleStore, getMapView, getSidePanel }) {
     this.importService = importService;
     this.obstacleStore = obstacleStore;
-    this.mapView = mapView;
-    this.sidePanel = sidePanel;
+    this.getMapView = getMapView;
+    this.getSidePanel = getSidePanel;
+  }
+
+  mapView() {
+    const view = this.getMapView?.();
+    return view ?? null;
+  }
+
+  sidePanel() {
+    const panel = this.getSidePanel?.();
+    return panel ?? null;
   }
 
   // Handles the KMZ import process and updates store, map and UI
@@ -11,14 +21,16 @@ export default class ImportController {
     try {
       this.resetObstacles();
 
-      this.sidePanel.setErrorMessage("");
+      this.sidePanel()?.setErrorMessage("");
 
       const obstacles = await this.importService.loadObstaclesFromKMZ(file);
 
       this.obstacleStore.setObstacles(obstacles);
-      this.mapView.renderObstaclesMarkers(obstacles);
+      const mapView = this.mapView();
+      mapView?.renderObstaclesMarkers(obstacles);
+      mapView?.fitMapToObstacles?.(obstacles);
     } catch (error) {
-      this.sidePanel.setErrorMessage(error?.message || "Invalid KMZ");
+      this.sidePanel()?.setErrorMessage(error?.message || "Invalid KMZ");
       throw error;
     }
   }
@@ -27,14 +39,16 @@ export default class ImportController {
     try {
       this.resetObstacles();
 
-      this.sidePanel.setErrorMessage("");
+      this.sidePanel()?.setErrorMessage("");
 
       const obstacles = await this.importService.loadObstaclesFromAIXM(file);
 
       this.obstacleStore.setObstacles(obstacles);
-      this.mapView.renderObstaclesMarkers(obstacles);
+      const mapView = this.mapView();
+      mapView?.renderObstaclesMarkers(obstacles);
+      mapView?.fitMapToObstacles?.(obstacles);
     } catch (error) {
-      this.sidePanel.setErrorMessage(error?.message || "Invalid AIXM");
+      this.sidePanel()?.setErrorMessage(error?.message || "Invalid AIXM");
       throw error;
     }
   }
@@ -42,7 +56,7 @@ export default class ImportController {
   // Clears all obstacles from store, map and UI
   resetObstacles() {
     this.obstacleStore.clear();
-    this.mapView.clearObstacleMarkers();
-    this.sidePanel.setErrorMessage("");
+    this.mapView()?.clearObstacleMarkers();
+    this.sidePanel()?.setErrorMessage("");
   }
 }
