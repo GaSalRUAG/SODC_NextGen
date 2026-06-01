@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<aixm:AIXMBasicMessage xmlns:aixm="http://www.aixm.aero/schema/5.1.1"
+  xmlns:gml="http://www.opengis.net/gml/3.2"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <aixm:hasMember>
+    <aixm:VerticalStructure gml:id="VS1">
+      <aixm:timeSlice>
+        <aixm:VerticalStructureTimeSlice>
+          <aixm:part>
+            <aixm:VerticalStructurePart>
+              <aixm:horizontalProjection>
+                <aixm:ElevatedPoint srsName="urn:ogc:def:crs:OGC:1.3:CRS84">
+                  <gml:pos>8.5 47.4 1200</gml:pos>
+                </aixm:ElevatedPoint>
+              </aixm:horizontalProjection>
+              <aixm:verticalExtent uom="M">45</aixm:verticalExtent>
+            </aixm:VerticalStructurePart>
+          </aixm:part>
+        </aixm:VerticalStructureTimeSlice>
+      </aixm:timeSlice>
+    </aixm:VerticalStructure>
+  </aixm:hasMember>
+</aixm:AIXMBasicMessage>

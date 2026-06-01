@@ -119,6 +119,15 @@ function App() {
     mapView.renderObstaclesMarkers(filteredObstacles);
   }, [filteredObstacles]);
 
+  useEffect(() => {
+    const mapView = mapViewRef.current;
+    if (!mapView) return;
+
+    mapView.resizeMap();
+    const timer = setTimeout(() => mapView.resizeMap(), 400);
+    return () => clearTimeout(timer);
+  }, [isSidePanelOpen]);
+
   function handleMenuClick(menuItem) {
     if (activeMenu === menuItem && isSidePanelOpen) {
       setIsSidePanelOpen(false);
@@ -212,8 +221,11 @@ function App() {
           style={{
             flex: 1,
             minHeight: 0,
+            minWidth: 0,
             marginLeft: isSidePanelOpen ? "380px" : "0",
             transition: "margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+            overflow: "hidden",
+            position: "relative",
           }}
         >
           <MapView ref={mapViewRef} />

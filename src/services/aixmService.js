@@ -9,14 +9,30 @@ function pairToLatLon(a, b) {
   if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
   if (Math.abs(a) > 1e6 || Math.abs(b) > 1e6) return null;
 
-  if (Math.abs(a) <= 90 && Math.abs(b) <= 180) {
-    if (b >= 43 && b <= 50 && a >= 4 && a <= 15) {
-      return { latitude: b, longitude: a };
-    }
-    if (a >= 43 && a <= 50 && b >= 4 && b <= 15) {
-      return { latitude: a, longitude: b };
-    }
-    return { latitude: a, longitude: b };
+  const isLat = (value) => Math.abs(value) <= 90;
+  const isLon = (value) => Math.abs(value) <= 180;
+  const swissLon = (value) => value >= 5.5 && value <= 11.5;
+  const swissLat = (value) => value >= 45 && value <= 48.5;
+
+  if (swissLon(a) && swissLat(b)) {
+    return { longitude: a, latitude: b };
+  }
+  if (swissLat(a) && swissLon(b)) {
+    return { longitude: b, latitude: a };
+  }
+
+  if (Math.abs(a) > 90 && isLat(b)) {
+    return { longitude: a, latitude: b };
+  }
+  if (Math.abs(b) > 90 && isLat(a)) {
+    return { longitude: b, latitude: a };
+  }
+
+  if (isLon(a) && isLat(b)) {
+    return { longitude: a, latitude: b };
+  }
+  if (isLat(a) && isLon(b)) {
+    return { longitude: b, latitude: a };
   }
 
   return null;
@@ -84,11 +100,14 @@ function parseNilableLength(element) {
 }
 
 function isCrs84(element) {
-  const srsName = element?.getAttribute("srsName") || "";
+  const srsName = (element?.getAttribute("srsName") || "").toUpperCase();
   return (
     srsName.includes("CRS84") ||
     srsName.includes("EPSG:4326") ||
-    srsName.includes("crs:EPSG::4326")
+    srsName.includes("EPSG::4326") ||
+    srsName.includes("EPSG:4979") ||
+    srsName.includes("WGS84") ||
+    srsName.includes("URN:OGC:DEF:CRS:OGC:1.3:CRS84")
   );
 }
 
