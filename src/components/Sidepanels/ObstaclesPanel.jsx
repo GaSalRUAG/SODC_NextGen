@@ -21,9 +21,6 @@ const ObstaclesPanel = forwardRef(function ObstaclesPanel(
     onImportKmzFile,
     onImportAixmFile,
     onClearAll,
-    pointCount = 0,
-    lineCount = 0,
-    unknownHeightCount = 0,
   },
   ref,
 ) {
@@ -139,21 +136,6 @@ const ObstaclesPanel = forwardRef(function ObstaclesPanel(
           ? "1 Hindernis importiert"
           : `${obstacleCount} Hindernisse importiert`}
       </div>
-
-      {hasObstacles ? (
-        <div
-          style={{
-            marginTop: "10px",
-            fontSize: "13px",
-            color: "#475569",
-            lineHeight: "1.5",
-          }}
-        >
-          {pointCount} Punkt{pointCount === 1 ? "" : "e"} · {lineCount} Linien-Segment
-          {lineCount === 1 ? "" : "e"}
-          {unknownHeightCount > 0 ? ` · ${unknownHeightCount} ohne Höhe` : ""}
-        </div>
-      ) : null}
 
       <input
         ref={kmzInputRef}

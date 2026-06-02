@@ -6,16 +6,12 @@ import SidePanel from "./components/SidePanel";
 import ImportController from "./controllers/importController";
 import ImportService from "./services/importService";
 import ObstacleStore from "./stores/obstacleStore";
-import { applyLineMerge } from "./utils/obstacleMerge";
 
 function App() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [obstacles, setObstacles] = useState([]);
   const [altitudeFilterMeters, setAltitudeFilterMeters] = useState(0);
-  const [showPointObstacles, setShowPointObstacles] = useState(true);
-  const [showLineObstacles, setShowLineObstacles] = useState(true);
-  const [mergeLineSegments, setMergeLineSegments] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
 
@@ -68,33 +64,12 @@ function App() {
     return () => clearTimeout(timer);
   }, [showToast]);
 
-  const obstacleStats = useMemo(() => {
-    const pointCount = obstacles.filter(
-      (obstacle) => obstacle.geometryType === "point",
-    ).length;
-    const lineCount = obstacles.filter(
-      (obstacle) => obstacle.geometryType === "line" && !obstacle.merged,
-    ).length;
-    const unknownHeightCount = obstacles.filter(
-      (obstacle) => !obstacle.heightKnown,
-    ).length;
-
-    return { pointCount, lineCount, unknownHeightCount };
-  }, [obstacles]);
-
   const displayObstacles = useMemo(() => {
-    return applyLineMerge(obstacles, mergeLineSegments);
-  }, [obstacles, mergeLineSegments]);
+    return obstacles;
+  }, [obstacles]);
 
   const filteredObstacles = useMemo(() => {
     return displayObstacles.filter((obstacle) => {
-      if (obstacle.geometryType === "point" && !showPointObstacles) {
-        return false;
-      }
-      if (obstacle.geometryType === "line" && !showLineObstacles) {
-        return false;
-      }
-
       if (!obstacle.heightKnown) {
         return true;
       }
@@ -108,8 +83,6 @@ function App() {
     });
   }, [
     displayObstacles,
-    showPointObstacles,
-    showLineObstacles,
     effectiveAltitudeFilterMeters,
   ]);
 
@@ -169,9 +142,6 @@ function App() {
   function handleResetObstacles() {
     if (!importControllerRef.current) return;
     importControllerRef.current.resetObstacles();
-    setShowPointObstacles(true);
-    setShowLineObstacles(true);
-    setMergeLineSegments(false);
     setAltitudeFilterMeters(0);
   }
 
@@ -206,15 +176,6 @@ function App() {
           altitudeFilterMeters={effectiveAltitudeFilterMeters}
           altitudeFilterMaxMeters={maxObstacleAltitude}
           onAltitudeFilterChange={setAltitudeFilterMeters}
-          showPointObstacles={showPointObstacles}
-          showLineObstacles={showLineObstacles}
-          mergeLineSegments={mergeLineSegments}
-          onShowPointObstaclesChange={setShowPointObstacles}
-          onShowLineObstaclesChange={setShowLineObstacles}
-          onMergeLineSegmentsChange={setMergeLineSegments}
-          pointCount={obstacleStats.pointCount}
-          lineCount={obstacleStats.lineCount}
-          unknownHeightCount={obstacleStats.unknownHeightCount}
         />
 
         <div

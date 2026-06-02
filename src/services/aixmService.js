@@ -111,6 +111,20 @@ function isCrs84(element) {
   );
 }
 
+function getCoordinateStep(element, numbers) {
+  const ownDimension = Number(element?.getAttribute("srsDimension"));
+  const parentDimension = Number(element?.parentElement?.getAttribute("srsDimension"));
+  const dimension = Number.isFinite(ownDimension)
+    ? ownDimension
+    : Number.isFinite(parentDimension)
+      ? parentDimension
+      : null;
+
+  if (dimension === 2 || dimension === 3) return dimension;
+  if (numbers.length % 3 === 0) return 3;
+  return 2;
+}
+
 function parsePosListToCoordinates(posListElement, crs84Preferred) {
   const numbers = collectNumbersFromPosList(posListElement?.textContent || "");
   if (numbers.length < 2) return [];
@@ -123,15 +137,18 @@ function parsePosListToCoordinates(posListElement, crs84Preferred) {
     isCrs84(posListElement?.parentElement?.parentElement);
 
   const coordinates = [];
-  for (let index = 0; index + 1 < numbers.length; index += 2) {
-    if (crs84) {
-      coordinates.push([numbers[index], numbers[index + 1]]);
+  const step = getCoordinateStep(posListElement, numbers);
+  for (let index = 0; index + 1 < numbers.length; index += step) {
+    const first = numbers[index];
+    const second = numbers[index + 1];
+    const pair = pairToLatLon(first, second);
+    if (pair) {
+      coordinates.push([pair.longitude, pair.latitude]);
       continue;
     }
 
-    const pair = pairToLatLon(numbers[index], numbers[index + 1]);
-    if (pair) {
-      coordinates.push([pair.longitude, pair.latitude]);
+    if (crs84 && Number.isFinite(first) && Number.isFinite(second)) {
+      coordinates.push([first, second]);
     }
   }
 
@@ -145,20 +162,22 @@ function parsePosToCoordinate(posElement, crs84Preferred) {
   const pointContainer = posElement?.parentElement?.parentElement;
   const crs84 = crs84Preferred || isCrs84(pointContainer);
 
-  if (crs84) {
+  const pair = pairToLatLon(numbers[0], numbers[1]);
+  if (pair) {
+    const coordinate = [pair.longitude, pair.latitude];
+    return numbers.length >= 3 && Number.isFinite(numbers[2])
+      ? { coordinate, altitude: numbers[2] }
+      : { coordinate };
+  }
+
+  if (crs84 && Number.isFinite(numbers[0]) && Number.isFinite(numbers[1])) {
     const coordinate = [numbers[0], numbers[1]];
     return numbers.length >= 3 && Number.isFinite(numbers[2])
       ? { coordinate, altitude: numbers[2] }
       : { coordinate };
   }
 
-  const pair = pairToLatLon(numbers[0], numbers[1]);
-  if (!pair) return null;
-
-  const coordinate = [pair.longitude, pair.latitude];
-  return numbers.length >= 3 && Number.isFinite(numbers[2])
-    ? { coordinate, altitude: numbers[2] }
-    : { coordinate };
+  return null;
 }
 
 function findPartIndex(partElement) {
@@ -244,6 +263,32 @@ function parsePointProjection(partElement) {
   return null;
 }
 
+function getRepresentativePoint(coordinates) {
+  if (!Array.isArray(coordinates) || !coordinates.length) return null;
+
+  let longitudeSum = 0;
+  let latitudeSum = 0;
+  let count = 0;
+
+  for (let index = 0; index < coordinates.length; index += 1) {
+    const vertex = coordinates[index];
+    if (!Array.isArray(vertex) || vertex.length < 2) continue;
+    const longitude = Number(vertex[0]);
+    const latitude = Number(vertex[1]);
+    if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) continue;
+    longitudeSum += longitude;
+    latitudeSum += latitude;
+    count += 1;
+  }
+
+  if (!count) return null;
+
+  return {
+    longitude: longitudeSum / count,
+    latitude: latitudeSum / count,
+  };
+}
+
 function getStructureId(structureElement) {
   return (
     structureElement.getAttributeNS(
@@ -276,13 +321,15 @@ function parseVerticalStructureParts(xml) {
       if (!geometry?.coordinates?.length) continue;
 
       idCounter += 1;
-      const geometryType = linear ? "line" : "point";
+      const representativePoint = getRepresentativePoint(geometry.coordinates);
+      if (!representativePoint) continue;
 
       obstacles.push(
         new Obstacle({
           id: `aixm-${idCounter}`,
-          geometryType,
-          coordinates: geometry.coordinates,
+          geometryType: "point",
+          longitude: representativePoint.longitude,
+          latitude: representativePoint.latitude,
           altitude: geometry.altitude,
           heightKnown: geometry.heightKnown,
           parentId,
@@ -345,7 +392,8 @@ function parseGenericPositions(xml) {
       continue;
     }
 
-    for (let index = 0; index + 1 < numbers.length; index += 2) {
+    const step = getCoordinateStep(element, numbers);
+    for (let index = 0; index + 1 < numbers.length; index += step) {
       const pair = pairToLatLon(numbers[index], numbers[index + 1]);
       if (pair) pushUnique(pair.latitude, pair.longitude);
     }

@@ -7,42 +7,23 @@ const INITIAL_ZOOM = 9;
 const MAP_STYLE_ID = "map-obstacle-map-styles";
 const OBSTACLES_SOURCE_ID = "obstacles";
 const OBSTACLES_LAYER_ID = "obstacles-circles";
-const OBSTACLES_LINES_LAYER_ID = "obstacles-lines";
-
-const OBSTACLE_LINE_WIDTH_BY_ZOOM = [
-  "interpolate",
-  ["linear"],
-  ["zoom"],
-  5,
-  2,
-  9,
-  3,
-  11,
-  3.5,
-  14,
-  5.5,
-  18,
-  8,
-];
 
 const OBSTACLE_CIRCLE_RADIUS_BY_ZOOM = [
   "interpolate",
   ["exponential", 1.35],
   ["zoom"],
   5,
-  3,
+  2,
   8,
-  4.25,
-  9,
-  4.75,
+  3.25,
   11,
-  5.75,
+  4.75,
   14,
-  7.5,
+  6.5,
   17,
-  9.5,
+  8.5,
   18,
-  10.5,
+  9.5,
 ];
 
 const OBSTACLE_CIRCLE_STROKE_WIDTH_BY_ZOOM = [
@@ -50,13 +31,11 @@ const OBSTACLE_CIRCLE_STROKE_WIDTH_BY_ZOOM = [
   ["linear"],
   ["zoom"],
   5,
-  1,
-  9,
-  1.15,
+  0.85,
   11,
-  1.35,
+  1.15,
   18,
-  2,
+  1.85,
 ];
 
 const EMPTY_FEATURE_COLLECTION = { type: "FeatureCollection", features: [] };
@@ -87,19 +66,6 @@ const MAP_STYLE = {
       paint: { "background-color": "#e5e7eb" },
     },
     { id: "swisstopo-layer", type: "raster", source: "swisstopo" },
-    {
-      id: OBSTACLES_LINES_LAYER_ID,
-      type: "line",
-      source: OBSTACLES_SOURCE_ID,
-      filter: ["==", ["geometry-type"], "LineString"],
-      paint: {
-        "line-color": "#e11d48",
-        "line-width": OBSTACLE_LINE_WIDTH_BY_ZOOM,
-        "line-opacity": 0.92,
-        "line-cap": "round",
-        "line-join": "round",
-      },
-    },
     {
       id: OBSTACLES_LAYER_ID,
       type: "circle",
@@ -151,29 +117,6 @@ function obstaclesToFeatureCollection(obstacles) {
   const features = [];
   for (let index = 0; index < obstacles.length; index += 1) {
     const obstacle = obstacles[index];
-
-    if (obstacle.geometryType === "line") {
-      const coordinates = (obstacle.coordinates || []).filter(
-        (vertex) =>
-          Array.isArray(vertex) &&
-          isValidLngLat(Number(vertex[0]), Number(vertex[1])),
-      );
-
-      if (coordinates.length < 2) continue;
-
-      features.push({
-        type: "Feature",
-        geometry: {
-          type: "LineString",
-          coordinates,
-        },
-        properties: {
-          id: obstacle.id,
-          geometryType: "line",
-        },
-      });
-      continue;
-    }
 
     const point = getPointLngLat(obstacle);
     if (!point) continue;
