@@ -32,15 +32,18 @@ Turn a GitHub issue into a ready-to-build workspace: resolve the issue, create a
 **Pattern** (always use unless the user overrides in chat):
 
 ```
-issue/{n}-{slug}
+issue/{n}-{developer}-{slug}
 ```
 
 | Token | Meaning |
 |-------|---------|
 | `{n}` | GitHub issue number (no `#`) |
+| `{developer}` | Developer identifier, preferably GitHub login; fallback to git user name |
 | `{slug}` | Kebab-case from issue title |
 
-**Example**: issue #42 *Fix AIXM import height parsing* -> `issue/42-fix-aixm-import-height-parsing`
+**Example**: issue #42 *Fix AIXM import height parsing*, developer `gaetano` -> `issue/42-gaetano-fix-aixm-import-height-parsing`
+
+**Developer rules**: resolve the developer identifier with `gh api user -q .login` when available; otherwise use `git config user.name`. Convert to lowercase kebab-case; letters, numbers, hyphens only; strip punctuation; collapse repeated hyphens; trim to **24 characters** max. If no developer can be resolved, ask the user for the developer name before creating the branch.
 
 **Slug rules**: lowercase; letters, numbers, hyphens only; strip punctuation; collapse repeated hyphens; trim slug to **40 characters** max.
 
@@ -117,16 +120,17 @@ gh repo view GaSalRUAG/SODC_NextGen --json defaultBranchRef -q .defaultBranchRef
 
 ### Step 4 - Create and checkout branch
 
-1. Build branch name from the pattern and issue title.
-2. If branch exists locally or on remote, ask: checkout existing, or use a suffix.
-3. Create and switch:
+1. Resolve the developer identifier.
+2. Build branch name from the pattern, developer identifier, and issue title.
+3. If branch exists locally or on remote, ask: checkout existing, or use a suffix.
+4. Create and switch:
 
 ```bash
 git checkout -b <branch-name>
 ```
 
-4. Call **SetActiveBranch** with repo path and branch name.
-5. Confirm issue URL, branch name, base branch, and clean working tree.
+5. Call **SetActiveBranch** with repo path and branch name.
+6. Confirm issue URL, branch name, base branch, developer identifier, and clean working tree.
 
 Do **not** commit or push unless the user asks.
 
