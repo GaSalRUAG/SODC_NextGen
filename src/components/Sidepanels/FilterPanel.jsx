@@ -113,8 +113,7 @@ export default function FilterPanel({
 
             <div className="filter-altitude__footer">
               <span>0 m</span>
-              <label className="filter-altitude__input-wrap">
-                <span className="visually-hidden">Altitude maximum</span>
+              <div className="filter-altitude__input-wrap">
                 <input
                   type="number"
                   className="filter-altitude__input"
@@ -126,7 +125,7 @@ export default function FilterPanel({
                   aria-label="Altitude maximum in meters"
                 />
                 <span className="filter-altitude__input-suffix">m</span>
-              </label>
+              </div>
               <span>{altitudeFilterMaxMeters} m</span>
             </div>
           </>
@@ -173,8 +172,7 @@ export default function FilterPanel({
 
             <div className="filter-altitude__footer">
               <span>0 m</span>
-              <label className="filter-altitude__input-wrap">
-                <span className="visually-hidden">Height maximum</span>
+              <div className="filter-altitude__input-wrap">
                 <input
                   type="number"
                   className="filter-altitude__input"
@@ -186,7 +184,7 @@ export default function FilterPanel({
                   aria-label="Height maximum in meters"
                 />
                 <span className="filter-altitude__input-suffix">m</span>
-              </label>
+              </div>
               <span>{heightFilterMaxMeters} m</span>
             </div>
           </>
@@ -211,6 +209,7 @@ export default function FilterPanel({
             />
             <span>
               <strong>Point obstacles</strong>
+              <br />
               <span className="filter-checkbox__hint">Markers</span>
             </span>
           </label>
@@ -225,6 +224,7 @@ export default function FilterPanel({
             />
             <span>
               <strong>Line obstacles</strong>
+              <br />
               <span className="filter-checkbox__hint">Linear extent</span>
             </span>
           </label>
@@ -306,6 +306,7 @@ export default function FilterPanel({
                 {filteredObstacleCount}
               </span>
               <span className="filter-stats__of">
+                {" "}
                 of {displayObstacleCount} obstacles visible
               </span>
             </div>

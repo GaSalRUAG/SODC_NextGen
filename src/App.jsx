@@ -29,6 +29,7 @@ function App() {
   const mapViewRef = useRef(null);
   const sidePanelRef = useRef(null);
   const importControllerRef = useRef(null);
+  const shouldFitMapRef = useRef(false);
 
   const importService = useMemo(() => new ImportService(), []);
   const obstacleStore = useMemo(() => new ObstacleStore(), []);
@@ -173,6 +174,13 @@ function App() {
     const mapView = mapViewRef.current;
     if (!mapView) return;
     mapView.renderObstaclesMarkers(filteredObstacles);
+    if (shouldFitMapRef.current && filteredObstacles.length > 0) {
+      shouldFitMapRef.current = false;
+      requestAnimationFrame(() => {
+        mapView.resizeMap?.();
+        mapView.fitMapToObstacles(filteredObstacles);
+      });
+    }
   }, [filteredObstacles]);
 
   useEffect(() => {
@@ -204,6 +212,7 @@ function App() {
     if (!importControllerRef.current) return;
 
     try {
+      shouldFitMapRef.current = true;
       await importControllerRef.current.importKmzFile(file);
       setAltitudeFilterMeters(0);
       setHeightFilterMeters(0);
@@ -211,7 +220,15 @@ function App() {
       setShowLineObstacles(true);
       setSelectedObstacleTypes([]);
       setSelectedLightingStatuses([]);
+      setTimeout(() => {
+        const list = obstacleStore.getObstacles();
+        if (list.length) {
+          mapViewRef.current?.resizeMap?.();
+          mapViewRef.current?.fitMapToObstacles?.(list);
+        }
+      }, 400);
     } catch (error) {
+      shouldFitMapRef.current = false;
       setToastMessage(error?.message || "Import failed.");
       setShowToast(true);
     }
@@ -221,6 +238,7 @@ function App() {
     if (!importControllerRef.current) return;
 
     try {
+      shouldFitMapRef.current = true;
       await importControllerRef.current.importAixmFile(file);
       setAltitudeFilterMeters(0);
       setHeightFilterMeters(0);
@@ -228,7 +246,15 @@ function App() {
       setShowLineObstacles(true);
       setSelectedObstacleTypes([]);
       setSelectedLightingStatuses([]);
+      setTimeout(() => {
+        const list = obstacleStore.getObstacles();
+        if (list.length) {
+          mapViewRef.current?.resizeMap?.();
+          mapViewRef.current?.fitMapToObstacles?.(list);
+        }
+      }, 400);
     } catch (error) {
+      shouldFitMapRef.current = false;
       setToastMessage(error?.message || "Import failed.");
       setShowToast(true);
     }

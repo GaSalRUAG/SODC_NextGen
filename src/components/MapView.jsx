@@ -327,6 +327,7 @@ const MapView = forwardRef(function MapView(_, ref) {
   const obstaclesRef = useRef([]);
   const popupRef = useRef(null);
   const resizeTimerRef = useRef(null);
+  const dataVersionRef = useRef(0);
 
   function syncObstaclesToMap(map) {
     const geojson = obstaclesToFeatureCollection(obstaclesRef.current);
@@ -398,8 +399,13 @@ const MapView = forwardRef(function MapView(_, ref) {
     };
 
     const onObstacleLayerClick = (event) => {
-      const feature = event.features?.[0];
+      const features = map.queryRenderedFeatures(event.point, {
+        layers: INTERACTIVE_LAYER_IDS.filter((layerId) => map.getLayer(layerId)),
+      });
+      const feature = features[0] || event.features?.[0];
       if (!feature) return;
+
+      event.originalEvent?.stopPropagation?.();
 
       const obstacle = findObstacleById(
         obstaclesRef.current,
@@ -411,6 +417,7 @@ const MapView = forwardRef(function MapView(_, ref) {
     };
 
     const onMapClick = (event) => {
+      if (!map) return;
       const features = map.queryRenderedFeatures(event.point, {
         layers: INTERACTIVE_LAYER_IDS.filter((layerId) => map.getLayer(layerId)),
       });
@@ -454,10 +461,11 @@ const MapView = forwardRef(function MapView(_, ref) {
 
       for (let index = 0; index < INTERACTIVE_LAYER_IDS.length; index += 1) {
         const layerId = INTERACTIVE_LAYER_IDS[index];
-        map.on("click", layerId, onObstacleLayerClick);
         map.on("mouseenter", layerId, onObstacleMouseEnter);
         map.on("mouseleave", layerId, onObstacleMouseLeave);
       }
+      // Single click handler avoids dual open when point+line overlap
+      map.on("click", onObstacleLayerClick);
       map.on("click", onMapClick);
       document.addEventListener("keydown", onEscapeKey);
 
@@ -505,17 +513,29 @@ const MapView = forwardRef(function MapView(_, ref) {
       refreshMapTiles(map);
     },
     renderObstaclesMarkers(obstaclesList) {
-      obstaclesRef.current = obstaclesList;
+      obstaclesRef.current = obstaclesList || [];
+      const version = ++dataVersionRef.current;
       const map = mapRef.current;
+      if (map?.isStyleLoaded()) {
+        syncObstaclesToMap(map);
+        return;
+      }
       whenMapReady(map, () => {
+        if (version !== dataVersionRef.current) return;
         syncObstaclesToMap(map);
       });
     },
     clearObstacleMarkers() {
       obstaclesRef.current = [];
+      const version = ++dataVersionRef.current;
       closeObstaclePopup(popupRef);
       const map = mapRef.current;
+      if (map?.isStyleLoaded()) {
+        setObstacleSourceData(map, EMPTY_FEATURE_COLLECTION);
+        return;
+      }
       whenMapReady(map, () => {
+        if (version !== dataVersionRef.current) return;
         setObstacleSourceData(map, EMPTY_FEATURE_COLLECTION);
       });
     },
@@ -524,23 +544,57 @@ const MapView = forwardRef(function MapView(_, ref) {
       const geojson = obstaclesToFeatureCollection(obstaclesList);
       if (!geojson.features.length) return;
 
-      const map = mapRef.current;
-      const runFit = () => {
-        if (!map?.isStyleLoaded()) return;
-        const bounds = new maplibregl.LngLatBounds();
-        for (let index = 0; index < geojson.features.length; index += 1) {
-          extendBoundsWithCoordinates(
-            bounds,
-            geojson.features[index].geometry.coordinates,
-          );
-        }
-        if (!bounds.isEmpty()) {
-          map.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 650 });
-        }
-        refreshMapTiles(map);
+      const map =
+        mapRef.current ||
+        (typeof window !== "undefined" ? window.__sodcMap : null);
+      if (!map) return;
+
+      let minLng = Infinity;
+      let minLat = Infinity;
+      let maxLng = -Infinity;
+      let maxLat = -Infinity;
+
+      const pushCoord = (longitude, latitude) => {
+        if (!isValidLngLat(longitude, latitude)) return;
+        minLng = Math.min(minLng, longitude);
+        minLat = Math.min(minLat, latitude);
+        maxLng = Math.max(maxLng, longitude);
+        maxLat = Math.max(maxLat, latitude);
       };
 
-      whenMapReady(map, runFit);
+      const walk = (coordinates) => {
+        if (!coordinates?.length) return;
+        if (typeof coordinates[0] === "number") {
+          pushCoord(coordinates[0], coordinates[1]);
+          return;
+        }
+        for (let index = 0; index < coordinates.length; index += 1) {
+          walk(coordinates[index]);
+        }
+      };
+
+      for (let index = 0; index < geojson.features.length; index += 1) {
+        walk(geojson.features[index].geometry.coordinates);
+      }
+
+      if (!Number.isFinite(minLng) || !Number.isFinite(minLat)) return;
+
+      try {
+        map.resize();
+        map.fitBounds(
+          [
+            [minLng, minLat],
+            [maxLng, maxLat],
+          ],
+          {
+            padding: 80,
+            maxZoom: 14,
+            duration: 650,
+          },
+        );
+      } catch (error) {
+        console.warn("fitMapToObstacles failed:", error);
+      }
     },
   }));
 

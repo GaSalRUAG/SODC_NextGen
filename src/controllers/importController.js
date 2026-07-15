@@ -23,9 +23,6 @@ export default class ImportController {
     const skippedCount = result?.skippedCount ?? 0;
 
     this.obstacleStore.setObstacles(obstacles);
-    const mapView = this.mapView();
-    mapView?.renderObstaclesMarkers(obstacles);
-    mapView?.fitMapToObstacles?.(obstacles);
 
     const panel = this.sidePanel();
     if (warnings.length || skippedCount > 0) {
