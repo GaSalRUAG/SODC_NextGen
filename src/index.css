@@ -254,6 +254,14 @@ body {
   color: #1e293b;
 }
 
+.filter-checkbox__hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
 .filter-stats {
   padding: 14px 16px;
   border-radius: 12px;
