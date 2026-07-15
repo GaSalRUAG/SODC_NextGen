@@ -11,7 +11,13 @@ export default class ImportService {
   async loadObstaclesFromKMZ(file) {
     const kmzBuffer = await this.kmzService.readKmzFile(file);
     const kmlContent = await this.kmzService.extractKmlContent(kmzBuffer);
-    return this.kmzService.parseObstaclesFromKml(kmlContent);
+    const obstacles = this.kmzService.parseObstaclesFromKml(kmlContent);
+    return {
+      obstacles,
+      warnings: [],
+      importedCount: obstacles.length,
+      skippedCount: 0,
+    };
   }
 
   async loadObstaclesFromAIXM(file) {

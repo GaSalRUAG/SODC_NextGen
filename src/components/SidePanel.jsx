@@ -19,6 +19,19 @@ const SidePanel = forwardRef(function SidePanel(
     altitudeFilterMeters = 0,
     altitudeFilterMaxMeters = 0,
     onAltitudeFilterChange,
+    heightFilterMeters = 0,
+    heightFilterMaxMeters = 0,
+    onHeightFilterChange,
+    showPointObstacles = true,
+    showLineObstacles = true,
+    onShowPointObstaclesChange,
+    onShowLineObstaclesChange,
+    selectedObstacleTypes = [],
+    selectedLightingStatuses = [],
+    onSelectedObstacleTypesChange,
+    onSelectedLightingStatusesChange,
+    availableObstacleTypes = [],
+    availableLightingStatuses = [],
   },
   ref,
 ) {
@@ -58,6 +71,19 @@ const SidePanel = forwardRef(function SidePanel(
           altitudeFilterMeters={altitudeFilterMeters}
           altitudeFilterMaxMeters={altitudeFilterMaxMeters}
           onAltitudeFilterChange={onAltitudeFilterChange}
+          heightFilterMeters={heightFilterMeters}
+          heightFilterMaxMeters={heightFilterMaxMeters}
+          onHeightFilterChange={onHeightFilterChange}
+          showPointObstacles={showPointObstacles}
+          showLineObstacles={showLineObstacles}
+          onShowPointObstaclesChange={onShowPointObstaclesChange}
+          onShowLineObstaclesChange={onShowLineObstaclesChange}
+          selectedObstacleTypes={selectedObstacleTypes}
+          selectedLightingStatuses={selectedLightingStatuses}
+          onSelectedObstacleTypesChange={onSelectedObstacleTypesChange}
+          onSelectedLightingStatusesChange={onSelectedLightingStatusesChange}
+          availableObstacleTypes={availableObstacleTypes}
+          availableLightingStatuses={availableLightingStatuses}
         />
       );
 

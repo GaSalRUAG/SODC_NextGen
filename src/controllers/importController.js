@@ -16,19 +16,42 @@ export default class ImportController {
     return panel ?? null;
   }
 
+  applyImportResult(result) {
+    const obstacles = result?.obstacles ?? [];
+    const warnings = result?.warnings ?? [];
+    const importedCount = result?.importedCount ?? obstacles.length;
+    const skippedCount = result?.skippedCount ?? 0;
+
+    this.obstacleStore.setObstacles(obstacles);
+    const mapView = this.mapView();
+    mapView?.renderObstaclesMarkers(obstacles);
+    mapView?.fitMapToObstacles?.(obstacles);
+
+    const panel = this.sidePanel();
+    if (warnings.length || skippedCount > 0) {
+      const preview = warnings
+        .slice(0, 5)
+        .map((warning) => `[${warning.recordId}] ${warning.reason}`)
+        .join("\n");
+      const more =
+        warnings.length > 5 ? `\n…and ${warnings.length - 5} more warning(s).` : "";
+      panel?.setErrorMessage(
+        `Imported ${importedCount}, skipped ${skippedCount}.\n${preview}${more}`,
+      );
+    } else {
+      panel?.setErrorMessage("");
+    }
+
+    return { obstacles, warnings, importedCount, skippedCount };
+  }
+
   // Handles the KMZ import process and updates store, map and UI
   async importKmzFile(file) {
     try {
       this.resetObstacles();
-
       this.sidePanel()?.setErrorMessage("");
-
-      const obstacles = await this.importService.loadObstaclesFromKMZ(file);
-
-      this.obstacleStore.setObstacles(obstacles);
-      const mapView = this.mapView();
-      mapView?.renderObstaclesMarkers(obstacles);
-      mapView?.fitMapToObstacles?.(obstacles);
+      const result = await this.importService.loadObstaclesFromKMZ(file);
+      return this.applyImportResult(result);
     } catch (error) {
       this.sidePanel()?.setErrorMessage(error?.message || "Invalid KMZ");
       throw error;
@@ -38,15 +61,9 @@ export default class ImportController {
   async importAixmFile(file) {
     try {
       this.resetObstacles();
-
       this.sidePanel()?.setErrorMessage("");
-
-      const obstacles = await this.importService.loadObstaclesFromAIXM(file);
-
-      this.obstacleStore.setObstacles(obstacles);
-      const mapView = this.mapView();
-      mapView?.renderObstaclesMarkers(obstacles);
-      mapView?.fitMapToObstacles?.(obstacles);
+      const result = await this.importService.loadObstaclesFromAIXM(file);
+      return this.applyImportResult(result);
     } catch (error) {
       this.sidePanel()?.setErrorMessage(error?.message || "Invalid AIXM");
       throw error;

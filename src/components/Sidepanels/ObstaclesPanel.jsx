@@ -171,6 +171,8 @@ const ObstaclesPanel = forwardRef(function ObstaclesPanel(
             marginTop: "14px",
             color: "#b91c1c",
             fontSize: "14px",
+            whiteSpace: "pre-wrap",
+            lineHeight: 1.45,
           }}
         >
           {errorMessage}

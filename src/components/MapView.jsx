@@ -7,6 +7,7 @@ const INITIAL_ZOOM = 9;
 const MAP_STYLE_ID = "map-obstacle-map-styles";
 const OBSTACLES_SOURCE_ID = "obstacles";
 const OBSTACLES_LAYER_ID = "obstacles-circles";
+const OBSTACLES_LINE_LAYER_ID = "obstacles-lines";
 
 const OBSTACLE_CIRCLE_RADIUS_BY_ZOOM = [
   "interpolate",
@@ -38,6 +39,18 @@ const OBSTACLE_CIRCLE_STROKE_WIDTH_BY_ZOOM = [
   1.85,
 ];
 
+const OBSTACLE_LINE_WIDTH_BY_ZOOM = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  5,
+  1.5,
+  11,
+  2.75,
+  18,
+  4.5,
+];
+
 const EMPTY_FEATURE_COLLECTION = { type: "FeatureCollection", features: [] };
 
 const SWISSTOPO_TILE_URL =
@@ -67,6 +80,21 @@ const MAP_STYLE = {
     },
     { id: "swisstopo-layer", type: "raster", source: "swisstopo" },
     {
+      id: OBSTACLES_LINE_LAYER_ID,
+      type: "line",
+      source: OBSTACLES_SOURCE_ID,
+      filter: ["==", ["geometry-type"], "LineString"],
+      paint: {
+        "line-color": "#2563eb",
+        "line-width": OBSTACLE_LINE_WIDTH_BY_ZOOM,
+        "line-opacity": 0.92,
+      },
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+    },
+    {
       id: OBSTACLES_LAYER_ID,
       type: "circle",
       source: OBSTACLES_SOURCE_ID,
@@ -81,6 +109,8 @@ const MAP_STYLE = {
     },
   ],
 };
+
+const INTERACTIVE_LAYER_IDS = [OBSTACLES_LAYER_ID, OBSTACLES_LINE_LAYER_ID];
 
 function isValidLngLat(longitude, latitude) {
   return (
@@ -111,12 +141,103 @@ function getPointLngLat(obstacle) {
   return null;
 }
 
+function findObstacleById(obstacles, id) {
+  if (!obstacles?.length || id == null) return null;
+  return obstacles.find((obstacle) => String(obstacle.id) === String(id)) || null;
+}
+
+function formatOptionalNumber(value, unit = "m") {
+  if (value == null || !Number.isFinite(Number(value))) return "—";
+  return `${Number(value)} ${unit}`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function formatObstaclePopupHtml(obstacle) {
+  const rows = [
+    ["ID", obstacle.id],
+    ["Source", obstacle.source],
+    ["Geometry", obstacle.geometryType],
+    ["Altitude (AMSL)", formatOptionalNumber(obstacle.altitude)],
+    ["Height", formatOptionalNumber(obstacle.height)],
+    ["Type", obstacle.obstacleType || "—"],
+    ["Lighting", obstacle.lightingStatus || "—"],
+    ["Parent", obstacle.parentId || "—"],
+    ["Part", obstacle.partIndex ?? "—"],
+  ]
+    .map(
+      ([label, value]) =>
+        `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`,
+    )
+    .join("");
+
+  return `<div class="obstacle-popup"><table><tbody>${rows}</tbody></table></div>`;
+}
+
+function closeObstaclePopup(popupRef) {
+  if (!popupRef?.current) return;
+  popupRef.current.remove();
+  popupRef.current = null;
+}
+
+function openObstaclePopup(map, obstacle, lngLat, popupRef) {
+  if (!map || !obstacle || !lngLat) return;
+
+  closeObstaclePopup(popupRef);
+
+  const popup = new maplibregl.Popup({
+    closeButton: true,
+    closeOnClick: false,
+    maxWidth: "280px",
+    className: "obstacle-detail-popup",
+  })
+    .setLngLat(lngLat)
+    .setHTML(formatObstaclePopupHtml(obstacle))
+    .addTo(map);
+
+  popupRef.current = popup;
+}
+
 function obstaclesToFeatureCollection(obstacles) {
   if (!obstacles?.length) return EMPTY_FEATURE_COLLECTION;
 
   const features = [];
   for (let index = 0; index < obstacles.length; index += 1) {
     const obstacle = obstacles[index];
+    const geometryType = obstacle.geometryType === "line" ? "line" : "point";
+
+    if (geometryType === "line") {
+      const coordinates = (obstacle.coordinates || [])
+        .map((pair) => [Number(pair[0]), Number(pair[1])])
+        .filter(([longitude, latitude]) => isValidLngLat(longitude, latitude));
+      if (coordinates.length < 2) continue;
+
+      features.push({
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates,
+        },
+        properties: {
+          id: obstacle.id,
+          geometryType: "line",
+          altitude: obstacle.altitude,
+          height: obstacle.height,
+          obstacleType: obstacle.obstacleType,
+          lightingStatus: obstacle.lightingStatus,
+          parentId: obstacle.parentId,
+          partIndex: obstacle.partIndex,
+          source: obstacle.source,
+        },
+      });
+      continue;
+    }
 
     const point = getPointLngLat(obstacle);
     if (!point) continue;
@@ -130,6 +251,13 @@ function obstaclesToFeatureCollection(obstacles) {
       properties: {
         id: obstacle.id,
         geometryType: "point",
+        altitude: obstacle.altitude,
+        height: obstacle.height,
+        obstacleType: obstacle.obstacleType,
+        lightingStatus: obstacle.lightingStatus,
+        parentId: obstacle.parentId,
+        partIndex: obstacle.partIndex,
+        source: obstacle.source,
       },
     });
   }
@@ -197,6 +325,7 @@ const MapView = forwardRef(function MapView(_, ref) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const obstaclesRef = useRef([]);
+  const popupRef = useRef(null);
   const resizeTimerRef = useRef(null);
 
   function syncObstaclesToMap(map) {
@@ -213,6 +342,38 @@ const MapView = forwardRef(function MapView(_, ref) {
     styleTag.textContent = `
       .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left {
         display: none;
+      }
+      .obstacle-detail-popup .maplibregl-popup-content {
+        padding: 10px 12px;
+        border-radius: 6px;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        font-size: 12px;
+        line-height: 1.4;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+      }
+      .obstacle-detail-popup .maplibregl-popup-close-button {
+        font-size: 16px;
+        padding: 2px 6px;
+        color: #475569;
+      }
+      .obstacle-popup table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      .obstacle-popup th,
+      .obstacle-popup td {
+        text-align: left;
+        vertical-align: top;
+        padding: 2px 0;
+      }
+      .obstacle-popup th {
+        padding-right: 10px;
+        font-weight: 600;
+        color: #475569;
+        white-space: nowrap;
+      }
+      .obstacle-popup td {
+        word-break: break-word;
       }
     `;
 
@@ -236,6 +397,42 @@ const MapView = forwardRef(function MapView(_, ref) {
       }, 150);
     };
 
+    const onObstacleLayerClick = (event) => {
+      const feature = event.features?.[0];
+      if (!feature) return;
+
+      const obstacle = findObstacleById(
+        obstaclesRef.current,
+        feature.properties?.id,
+      );
+      if (!obstacle) return;
+
+      openObstaclePopup(map, obstacle, event.lngLat, popupRef);
+    };
+
+    const onMapClick = (event) => {
+      const features = map.queryRenderedFeatures(event.point, {
+        layers: INTERACTIVE_LAYER_IDS.filter((layerId) => map.getLayer(layerId)),
+      });
+      if (!features.length) {
+        closeObstaclePopup(popupRef);
+      }
+    };
+
+    const onObstacleMouseEnter = () => {
+      map.getCanvas().style.cursor = "pointer";
+    };
+
+    const onObstacleMouseLeave = () => {
+      map.getCanvas().style.cursor = "";
+    };
+
+    const onEscapeKey = (event) => {
+      if (event.key === "Escape") {
+        closeObstaclePopup(popupRef);
+      }
+    };
+
     const initMap = () => {
       if (cancelled || !mapContainerRef.current || mapRef.current) return;
 
@@ -254,6 +451,15 @@ const MapView = forwardRef(function MapView(_, ref) {
       map.on("error", (event) => {
         console.error("MapLibre error:", event.error);
       });
+
+      for (let index = 0; index < INTERACTIVE_LAYER_IDS.length; index += 1) {
+        const layerId = INTERACTIVE_LAYER_IDS[index];
+        map.on("click", layerId, onObstacleLayerClick);
+        map.on("mouseenter", layerId, onObstacleMouseEnter);
+        map.on("mouseleave", layerId, onObstacleMouseLeave);
+      }
+      map.on("click", onMapClick);
+      document.addEventListener("keydown", onEscapeKey);
 
       const onMapReady = () => {
         resizeMapToContainer(map);
@@ -285,6 +491,8 @@ const MapView = forwardRef(function MapView(_, ref) {
       clearTimeout(resizeTimerRef.current);
       resizeObserver?.disconnect();
       window.removeEventListener("resize", scheduleResize);
+      document.removeEventListener("keydown", onEscapeKey);
+      closeObstaclePopup(popupRef);
       map?.remove();
       mapRef.current = null;
     };
@@ -305,6 +513,7 @@ const MapView = forwardRef(function MapView(_, ref) {
     },
     clearObstacleMarkers() {
       obstaclesRef.current = [];
+      closeObstaclePopup(popupRef);
       const map = mapRef.current;
       whenMapReady(map, () => {
         setObstacleSourceData(map, EMPTY_FEATURE_COLLECTION);

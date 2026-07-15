@@ -63,8 +63,10 @@ export default class KMZService {
           longitude,
           latitude,
           altitude: parsedAltitude,
+          height: null,
           geometryType: "point",
-          heightKnown: parsedAltitude != null,
+          altitudeKnown: parsedAltitude != null,
+          heightKnown: false,
           source: "kmz",
         }),
       );

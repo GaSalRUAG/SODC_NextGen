@@ -198,15 +198,56 @@ function findPartIndex(partElement) {
   return null;
 }
 
-function extractPartHeight(partElement, geometryElement) {
-  let altitude = parseNilableLength(findChildByLocalName(partElement, "verticalExtent"));
-  if (altitude == null && geometryElement) {
+function normalizeTextValue(element) {
+  if (!element || isNil(element)) return null;
+  const value = (element.textContent || "").trim();
+  return value || null;
+}
+
+function normalizeLightingStatus(raw) {
+  if (raw == null) return null;
+  const value = String(raw).trim().toUpperCase();
+  if (!value) return null;
+  if (["YES", "Y", "TRUE", "1", "LIGHTED", "LIGHT"].includes(value)) {
+    return "lighted";
+  }
+  if (["NO", "N", "FALSE", "0", "UNLIGHTED", "NONE"].includes(value)) {
+    return "unlighted";
+  }
+  return "unknown";
+}
+
+function extractStructureMetadata(structureElement) {
+  const timeSlice =
+    findDescendant(structureElement, "VerticalStructureTimeSlice") ||
+    structureElement;
+
+  const typeRaw =
+    normalizeTextValue(findChildByLocalName(timeSlice, "type")) ||
+    normalizeTextValue(findDescendant(structureElement, "type"));
+  const lightedRaw =
+    normalizeTextValue(findChildByLocalName(timeSlice, "lighted")) ||
+    normalizeTextValue(findDescendant(structureElement, "lighted"));
+
+  return {
+    obstacleType: typeRaw,
+    lightingStatus: normalizeLightingStatus(lightedRaw),
+  };
+}
+
+function extractPartAltitudeAndHeight(partElement, geometryElement) {
+  // verticalExtent = obstacle height (AGL-like extent); elevation = AMSL altitude
+  const height = parseNilableLength(findChildByLocalName(partElement, "verticalExtent"));
+  let altitude = null;
+  if (geometryElement) {
     altitude = parseNilableLength(findChildByLocalName(geometryElement, "elevation"));
   }
 
   return {
     altitude,
-    heightKnown: altitude != null,
+    height,
+    altitudeKnown: altitude != null,
+    heightKnown: height != null,
   };
 }
 
@@ -228,8 +269,8 @@ function parseLinearExtent(partElement) {
   );
   if (coordinates.length < 2) return null;
 
-  const height = extractPartHeight(partElement, curveElement);
-  return { coordinates, ...height, curveElement };
+  const levels = extractPartAltitudeAndHeight(partElement, curveElement);
+  return { coordinates, ...levels, curveElement };
 }
 
 function parsePointProjection(partElement) {
@@ -244,18 +285,23 @@ function parsePointProjection(partElement) {
     const parsed = parsePosToCoordinate(posElement, isCrs84(pointContainer));
     if (!parsed?.coordinate) continue;
 
-    const height = extractPartHeight(partElement, pointContainer);
-    let altitude = height.altitude;
-    let heightKnown = height.heightKnown;
+    const levels = extractPartAltitudeAndHeight(partElement, pointContainer);
+    let altitude = levels.altitude;
+    let altitudeKnown = levels.altitudeKnown;
+    const height = levels.height;
+    const heightKnown = levels.heightKnown;
 
-    if (parsed.altitude != null) {
+    // gml:pos Z is AMSL when present and elevation is missing
+    if (parsed.altitude != null && altitude == null) {
       altitude = parsed.altitude;
-      heightKnown = true;
+      altitudeKnown = true;
     }
 
     return {
       coordinates: [parsed.coordinate],
       altitude,
+      height,
+      altitudeKnown,
       heightKnown,
     };
   }
@@ -303,35 +349,68 @@ function getStructureId(structureElement) {
 
 function parseVerticalStructureParts(xml) {
   const obstacles = [];
+  const warnings = [];
   const structures = collectByLocalName(xml.documentElement, "VerticalStructure");
   let idCounter = 0;
+  let skippedCount = 0;
 
   for (let structureIndex = 0; structureIndex < structures.length; structureIndex += 1) {
     const structure = structures[structureIndex];
     const parentId = getStructureId(structure) || `structure-${structureIndex}`;
+    const metadata = extractStructureMetadata(structure);
     const parts = collectByLocalName(structure, "VerticalStructurePart");
+
+    if (!parts.length) {
+      skippedCount += 1;
+      warnings.push({
+        recordId: parentId,
+        reason: "VerticalStructure has no VerticalStructurePart elements.",
+      });
+      continue;
+    }
 
     for (let partIndex = 0; partIndex < parts.length; partIndex += 1) {
       const part = parts[partIndex];
       const sgPartIndex = findPartIndex(part);
+      const recordLabel = `${parentId}#part-${sgPartIndex ?? partIndex}`;
       const linear = parseLinearExtent(part);
       const point = linear ? null : parsePointProjection(part);
       const geometry = linear || point;
 
-      if (!geometry?.coordinates?.length) continue;
+      if (!geometry?.coordinates?.length) {
+        skippedCount += 1;
+        warnings.push({
+          recordId: recordLabel,
+          reason: "Missing or invalid WGS84 coordinates for VerticalStructurePart.",
+        });
+        continue;
+      }
+
+      const representativePoint = getRepresentativePoint(geometry.coordinates);
+      if (!representativePoint) {
+        skippedCount += 1;
+        warnings.push({
+          recordId: recordLabel,
+          reason: "Coordinates present but no usable representative point.",
+        });
+        continue;
+      }
 
       idCounter += 1;
-      const representativePoint = getRepresentativePoint(geometry.coordinates);
-      if (!representativePoint) continue;
-
+      const isLine = Boolean(linear) && geometry.coordinates.length >= 2;
       obstacles.push(
         new Obstacle({
           id: `aixm-${idCounter}`,
-          geometryType: "point",
+          geometryType: isLine ? "line" : "point",
+          coordinates: isLine ? geometry.coordinates : undefined,
           longitude: representativePoint.longitude,
           latitude: representativePoint.latitude,
-          altitude: geometry.altitude,
-          heightKnown: geometry.heightKnown,
+          altitude: geometry.altitude ?? null,
+          height: geometry.height ?? null,
+          altitudeKnown: Boolean(geometry.altitudeKnown),
+          heightKnown: Boolean(geometry.heightKnown),
+          obstacleType: metadata.obstacleType,
+          lightingStatus: metadata.lightingStatus,
           parentId,
           partIndex: sgPartIndex,
           source: "aixm",
@@ -340,7 +419,7 @@ function parseVerticalStructureParts(xml) {
     }
   }
 
-  return obstacles;
+  return { obstacles, warnings, skippedCount };
 }
 
 function* iterPosElements(doc) {
@@ -410,17 +489,41 @@ export default class AIXMService {
       throw new Error("The AIXM/XML content could not be parsed.");
     }
 
-    const structuredObstacles = parseVerticalStructureParts(xml);
-    const obstacles = structuredObstacles.length
-      ? structuredObstacles
-      : parseGenericPositions(xml);
+    const structured = parseVerticalStructureParts(xml);
+    let obstacles = structured.obstacles;
+    let warnings = structured.warnings;
+    let skippedCount = structured.skippedCount;
 
     if (!obstacles.length) {
+      const fallback = parseGenericPositions(xml);
+      obstacles = fallback;
+      if (fallback.length && warnings.length) {
+        warnings = [
+          ...warnings,
+          {
+            recordId: "fallback",
+            reason:
+              "Structured VerticalStructure parts were invalid; imported generic gml:pos/posList coordinates instead.",
+          },
+        ];
+      }
+    }
+
+    if (!obstacles.length) {
+      const detail =
+        warnings.length > 0
+          ? ` Skipped ${skippedCount} invalid record(s). First issue: ${warnings[0].reason}`
+          : "";
       throw new Error(
-        "No usable WGS84 coordinates were found in the AIXM file (expected VerticalStructure parts or gml:pos / gml:posList).",
+        `No usable WGS84 coordinates were found in the AIXM file (expected VerticalStructure parts or gml:pos / gml:posList).${detail}`,
       );
     }
 
-    return obstacles;
+    return {
+      obstacles,
+      warnings,
+      importedCount: obstacles.length,
+      skippedCount,
+    };
   }
 }

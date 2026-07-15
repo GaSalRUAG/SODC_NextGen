@@ -6,14 +6,57 @@
     <aixm:VerticalStructure gml:id="VS1">
       <aixm:timeSlice>
         <aixm:VerticalStructureTimeSlice>
+          <aixm:type>TOWER</aixm:type>
+          <aixm:lighted>YES</aixm:lighted>
           <aixm:part>
             <aixm:VerticalStructurePart>
               <aixm:horizontalProjection>
                 <aixm:ElevatedPoint srsName="urn:ogc:def:crs:OGC:1.3:CRS84">
                   <gml:pos>8.5 47.4 1200</gml:pos>
+                  <aixm:elevation uom="M">1200</aixm:elevation>
                 </aixm:ElevatedPoint>
               </aixm:horizontalProjection>
               <aixm:verticalExtent uom="M">45</aixm:verticalExtent>
+            </aixm:VerticalStructurePart>
+          </aixm:part>
+        </aixm:VerticalStructureTimeSlice>
+      </aixm:timeSlice>
+    </aixm:VerticalStructure>
+  </aixm:hasMember>
+  <aixm:hasMember>
+    <aixm:VerticalStructure gml:id="VS2">
+      <aixm:timeSlice>
+        <aixm:VerticalStructureTimeSlice>
+          <aixm:type>CABLE</aixm:type>
+          <aixm:lighted>NO</aixm:lighted>
+          <aixm:part>
+            <aixm:VerticalStructurePart>
+              <aixm:horizontalProjection_linearExtent>
+                <aixm:ElevatedCurve srsName="urn:ogc:def:crs:OGC:1.3:CRS84">
+                  <gml:segments>
+                    <gml:LineStringSegment>
+                      <gml:posList>8.48 47.38 8.52 47.42</gml:posList>
+                    </gml:LineStringSegment>
+                  </gml:segments>
+                  <aixm:elevation uom="M">980</aixm:elevation>
+                </aixm:ElevatedCurve>
+              </aixm:horizontalProjection_linearExtent>
+              <aixm:verticalExtent uom="M">30</aixm:verticalExtent>
+            </aixm:VerticalStructurePart>
+          </aixm:part>
+        </aixm:VerticalStructureTimeSlice>
+      </aixm:timeSlice>
+    </aixm:VerticalStructure>
+  </aixm:hasMember>
+  <aixm:hasMember>
+    <aixm:VerticalStructure gml:id="VS-INVALID">
+      <aixm:timeSlice>
+        <aixm:VerticalStructureTimeSlice>
+          <aixm:type>ANTENNA</aixm:type>
+          <aixm:lighted>YES</aixm:lighted>
+          <aixm:part>
+            <aixm:VerticalStructurePart>
+              <aixm:verticalExtent uom="M">12</aixm:verticalExtent>
             </aixm:VerticalStructurePart>
           </aixm:part>
         </aixm:VerticalStructureTimeSlice>
