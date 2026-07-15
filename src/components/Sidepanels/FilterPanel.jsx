@@ -1,3 +1,113 @@
+function FilterToggle({
+  checked,
+  disabled = false,
+  onChange,
+  label,
+  hint,
+  inputId,
+}) {
+  return (
+    <label
+      className={`filter-toggle${checked ? " filter-toggle--checked" : ""}${
+        disabled ? " filter-toggle--disabled" : ""
+      }`}
+      htmlFor={inputId}
+    >
+      <input
+        id={inputId}
+        className="visually-hidden"
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange?.(event.target.checked)}
+      />
+      <span className="filter-toggle__box" aria-hidden="true" />
+      <span>
+        <span className="filter-toggle__label">{label}</span>
+        {hint ? <span className="filter-toggle__hint">{hint}</span> : null}
+      </span>
+    </label>
+  );
+}
+
+function RangeFilter({
+  titleId,
+  title,
+  hint,
+  hasObstacles,
+  hasData,
+  emptyImportMessage,
+  emptyDataMessage,
+  value,
+  max,
+  disabled,
+  rangeId,
+  onSliderChange,
+  onInputChange,
+  inputAriaLabel,
+}) {
+  return (
+    <section className="filter-section" aria-labelledby={titleId}>
+      <div className="filter-section__header">
+        <h3 className="filter-section__title" id={titleId}>
+          {title}
+        </h3>
+        <span className="filter-section__hint">{hint}</span>
+      </div>
+
+      {!hasObstacles ? (
+        <p className="filter-message filter-message--muted">{emptyImportMessage}</p>
+      ) : !hasData ? (
+        <p className="filter-message filter-message--muted">{emptyDataMessage}</p>
+      ) : (
+        <>
+          <div className="filter-metric">
+            <span className="filter-metric__value">{value}</span>
+            <span className="filter-metric__unit">m</span>
+          </div>
+
+          <label className="visually-hidden" htmlFor={rangeId}>
+            {inputAriaLabel}
+          </label>
+          <input
+            id={rangeId}
+            type="range"
+            className="filter-range"
+            min={0}
+            max={max}
+            step={1}
+            value={value}
+            onChange={onSliderChange}
+            disabled={disabled}
+            aria-valuemin={0}
+            aria-valuemax={max}
+            aria-valuenow={value}
+            aria-valuetext={`${value} meters`}
+          />
+
+          <div className="filter-range-footer">
+            <span>0 m</span>
+            <div className="filter-input-wrap">
+              <input
+                type="number"
+                className="filter-input"
+                min={0}
+                max={max}
+                value={value}
+                onChange={onInputChange}
+                disabled={disabled}
+                aria-label={inputAriaLabel}
+              />
+              <span className="filter-input-suffix">m</span>
+            </div>
+            <span>{max} m</span>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 export default function FilterPanel({
   obstacles = [],
   filteredObstacleCount = 0,
@@ -67,129 +177,44 @@ export default function FilterPanel({
 
   return (
     <div className="filter-panel">
-      <section className="filter-section" aria-labelledby="filter-altitude-title">
-        <div className="filter-section__header">
-          <h3 className="filter-section__title" id="filter-altitude-title">
-            Altitude
-          </h3>
-          <span className="filter-section__hint">AMSL · meters</span>
-        </div>
+      <p className="filter-panel__intro">
+        Narrow map obstacles by altitude, height, geometry, type, and lighting.
+        Leave type/lighting unchecked to show all values.
+      </p>
 
-        {!hasObstacles ? (
-          <p className="filter-message filter-message--muted">
-            Import obstacles to enable altitude filtering.
-          </p>
-        ) : !hasAltitudeData ? (
-          <p className="filter-message filter-message--muted">
-            No altitude data available in the current dataset.
-          </p>
-        ) : (
-          <>
-            <div className="filter-altitude__value">
-              <span className="filter-altitude__number">
-                {altitudeFilterMeters}
-              </span>
-              <span className="filter-altitude__unit">m</span>
-            </div>
+      <RangeFilter
+        titleId="filter-altitude-title"
+        title="Altitude"
+        hint="AMSL · meters"
+        hasObstacles={hasObstacles}
+        hasData={hasAltitudeData}
+        emptyImportMessage="Import obstacles to enable altitude filtering."
+        emptyDataMessage="No altitude data available in the current dataset."
+        value={altitudeFilterMeters}
+        max={altitudeFilterMaxMeters}
+        disabled={altitudeSliderDisabled}
+        rangeId="altitude-filter-range"
+        onSliderChange={handleAltitudeSliderChange}
+        onInputChange={handleAltitudeInputChange}
+        inputAriaLabel="Maximum altitude in meters"
+      />
 
-            <label className="visually-hidden" htmlFor="altitude-filter-range">
-              Maximum altitude filter
-            </label>
-            <input
-              id="altitude-filter-range"
-              type="range"
-              className="filter-range"
-              min={0}
-              max={altitudeFilterMaxMeters}
-              step={1}
-              value={altitudeFilterMeters}
-              onChange={handleAltitudeSliderChange}
-              disabled={altitudeSliderDisabled}
-              aria-valuemin={0}
-              aria-valuemax={altitudeFilterMaxMeters}
-              aria-valuenow={altitudeFilterMeters}
-              aria-valuetext={`${altitudeFilterMeters} meters`}
-            />
-
-            <div className="filter-altitude__footer">
-              <span>0 m</span>
-              <div className="filter-altitude__input-wrap">
-                <input
-                  type="number"
-                  className="filter-altitude__input"
-                  min={0}
-                  max={altitudeFilterMaxMeters}
-                  value={altitudeFilterMeters}
-                  onChange={handleAltitudeInputChange}
-                  disabled={altitudeSliderDisabled}
-                  aria-label="Altitude maximum in meters"
-                />
-                <span className="filter-altitude__input-suffix">m</span>
-              </div>
-              <span>{altitudeFilterMaxMeters} m</span>
-            </div>
-          </>
-        )}
-      </section>
-
-      <section className="filter-section" aria-labelledby="filter-height-title">
-        <div className="filter-section__header">
-          <h3 className="filter-section__title" id="filter-height-title">
-            Height
-          </h3>
-          <span className="filter-section__hint">extent · meters</span>
-        </div>
-
-        {!hasObstacles ? (
-          <p className="filter-message filter-message--muted">
-            Import obstacles to enable height filtering.
-          </p>
-        ) : !hasHeightData ? (
-          <p className="filter-message filter-message--muted">
-            No height data available in the current dataset.
-          </p>
-        ) : (
-          <>
-            <div className="filter-altitude__value">
-              <span className="filter-altitude__number">{heightFilterMeters}</span>
-              <span className="filter-altitude__unit">m</span>
-            </div>
-
-            <label className="visually-hidden" htmlFor="height-filter-range">
-              Maximum height filter
-            </label>
-            <input
-              id="height-filter-range"
-              type="range"
-              className="filter-range"
-              min={0}
-              max={heightFilterMaxMeters}
-              step={1}
-              value={heightFilterMeters}
-              onChange={handleHeightSliderChange}
-              disabled={heightSliderDisabled}
-            />
-
-            <div className="filter-altitude__footer">
-              <span>0 m</span>
-              <div className="filter-altitude__input-wrap">
-                <input
-                  type="number"
-                  className="filter-altitude__input"
-                  min={0}
-                  max={heightFilterMaxMeters}
-                  value={heightFilterMeters}
-                  onChange={handleHeightInputChange}
-                  disabled={heightSliderDisabled}
-                  aria-label="Height maximum in meters"
-                />
-                <span className="filter-altitude__input-suffix">m</span>
-              </div>
-              <span>{heightFilterMaxMeters} m</span>
-            </div>
-          </>
-        )}
-      </section>
+      <RangeFilter
+        titleId="filter-height-title"
+        title="Height"
+        hint="extent · meters"
+        hasObstacles={hasObstacles}
+        hasData={hasHeightData}
+        emptyImportMessage="Import obstacles to enable height filtering."
+        emptyDataMessage="No height data available in the current dataset."
+        value={heightFilterMeters}
+        max={heightFilterMaxMeters}
+        disabled={heightSliderDisabled}
+        rangeId="height-filter-range"
+        onSliderChange={handleHeightSliderChange}
+        onInputChange={handleHeightInputChange}
+        inputAriaLabel="Maximum height in meters"
+      />
 
       <section className="filter-section" aria-labelledby="filter-geometry-title">
         <div className="filter-section__header">
@@ -197,37 +222,33 @@ export default function FilterPanel({
             Geometry
           </h3>
         </div>
-        <div className="filter-checkbox-group">
-          <label className="filter-checkbox">
-            <input
-              type="checkbox"
-              checked={showPointObstacles}
-              disabled={!hasObstacles}
-              onChange={(event) =>
-                onShowPointObstaclesChange?.(event.target.checked)
-              }
-            />
-            <span>
-              <strong>Point obstacles</strong>
-              <br />
-              <span className="filter-checkbox__hint">Markers</span>
-            </span>
-          </label>
-          <label className="filter-checkbox">
-            <input
-              type="checkbox"
-              checked={showLineObstacles}
-              disabled={!hasObstacles}
-              onChange={(event) =>
-                onShowLineObstaclesChange?.(event.target.checked)
-              }
-            />
-            <span>
-              <strong>Line obstacles</strong>
-              <br />
-              <span className="filter-checkbox__hint">Linear extent</span>
-            </span>
-          </label>
+        <div className="filter-toggle-list">
+          <FilterToggle
+            inputId="filter-show-points"
+            checked={showPointObstacles}
+            disabled={!hasObstacles}
+            onChange={onShowPointObstaclesChange}
+            label="Point obstacles"
+            hint="Map markers"
+          />
+          <FilterToggle
+            inputId="filter-show-lines"
+            checked={showLineObstacles}
+            disabled={!hasObstacles}
+            onChange={onShowLineObstaclesChange}
+            label="Line obstacles"
+            hint="Linear extent"
+          />
+        </div>
+        <div className="filter-legend" aria-hidden="true">
+          <span className="filter-legend__item">
+            <span className="filter-legend__swatch filter-legend__swatch--point" />
+            Point
+          </span>
+          <span className="filter-legend__item">
+            <span className="filter-legend__swatch filter-legend__swatch--line" />
+            Line
+          </span>
         </div>
       </section>
 
@@ -236,6 +257,7 @@ export default function FilterPanel({
           <h3 className="filter-section__title" id="filter-type-title">
             Type
           </h3>
+          <span className="filter-section__hint">optional</span>
         </div>
         {!hasObstacles ? (
           <p className="filter-message filter-message--muted">
@@ -246,19 +268,21 @@ export default function FilterPanel({
             No type values in the current dataset.
           </p>
         ) : (
-          <div className="filter-checkbox-group">
-            {availableObstacleTypes.map((type) => (
-              <label className="filter-checkbox" key={type}>
-                <input
-                  type="checkbox"
-                  checked={selectedObstacleTypes.includes(type)}
-                  onChange={() => toggleType(type)}
-                />
-                <span>
-                  <strong>{type}</strong>
-                </span>
-              </label>
-            ))}
+          <div className="filter-chip-group" role="group" aria-label="Obstacle types">
+            {availableObstacleTypes.map((type) => {
+              const active = selectedObstacleTypes.includes(type);
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  className={`filter-chip${active ? " filter-chip--active" : ""}`}
+                  aria-pressed={active}
+                  onClick={() => toggleType(type)}
+                >
+                  {type}
+                </button>
+              );
+            })}
           </div>
         )}
       </section>
@@ -268,6 +292,7 @@ export default function FilterPanel({
           <h3 className="filter-section__title" id="filter-lighting-title">
             Lighting
           </h3>
+          <span className="filter-section__hint">optional</span>
         </div>
         {!hasObstacles ? (
           <p className="filter-message filter-message--muted">
@@ -278,19 +303,25 @@ export default function FilterPanel({
             No lighting values in the current dataset.
           </p>
         ) : (
-          <div className="filter-checkbox-group">
-            {availableLightingStatuses.map((status) => (
-              <label className="filter-checkbox" key={status}>
-                <input
-                  type="checkbox"
-                  checked={selectedLightingStatuses.includes(status)}
-                  onChange={() => toggleLighting(status)}
-                />
-                <span>
-                  <strong>{status}</strong>
-                </span>
-              </label>
-            ))}
+          <div
+            className="filter-chip-group"
+            role="group"
+            aria-label="Lighting status"
+          >
+            {availableLightingStatuses.map((status) => {
+              const active = selectedLightingStatuses.includes(status);
+              return (
+                <button
+                  key={status}
+                  type="button"
+                  className={`filter-chip${active ? " filter-chip--active" : ""}`}
+                  aria-pressed={active}
+                  onClick={() => toggleLighting(status)}
+                >
+                  {status}
+                </button>
+              );
+            })}
           </div>
         )}
       </section>
@@ -302,11 +333,8 @@ export default function FilterPanel({
         {hasObstacles ? (
           <>
             <div className="filter-stats__primary">
-              <span className="filter-stats__count">
-                {filteredObstacleCount}
-              </span>
+              <span className="filter-stats__count">{filteredObstacleCount}</span>
               <span className="filter-stats__of">
-                {" "}
                 of {displayObstacleCount} obstacles visible
               </span>
             </div>

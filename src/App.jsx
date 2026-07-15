@@ -272,22 +272,10 @@ function App() {
   }
 
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        backgroundColor: "#f8fafc",
-        border: "none",
-      }}
-    >
+    <div className="app-shell">
       <MenuBar onMenuClick={handleMenuClick} activeMenu={activeMenu} />
 
-      <div
-        style={{ flex: 1, minHeight: 0, display: "flex", position: "relative" }}
-      >
+      <div className="app-main">
         <SidePanel
           ref={sidePanelRef}
           isOpen={isSidePanelOpen}
@@ -318,35 +306,15 @@ function App() {
         />
 
         <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            minWidth: 0,
-            marginLeft: isSidePanelOpen ? "380px" : "0",
-            transition: "margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-            overflow: "hidden",
-            position: "relative",
-          }}
+          className={`app-map-host${
+            isSidePanelOpen ? " app-map-host--panel-open" : ""
+          }`}
         >
           <MapView ref={mapViewRef} />
         </div>
 
         {showToast ? (
-          <div
-            style={{
-              position: "fixed",
-              top: "85px",
-              right: "20px",
-              backgroundColor: "#F5293D",
-              color: "white",
-              padding: "12px 16px",
-              borderRadius: "8px",
-              boxShadow: "0 6px 18px rgba(0, 0, 0, 0.18)",
-              zIndex: 2000,
-              fontSize: "14px",
-              fontWeight: "600",
-            }}
-          >
+          <div className="app-toast" role="status" aria-live="polite">
             {toastMessage}
           </div>
         ) : null}
